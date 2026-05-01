@@ -11,6 +11,7 @@ import com.example.busify.features.auth.LoginScreen
 import com.example.busify.features.auth.RegisterScreen
 import com.example.busify.features.buses.BusesScreen
 import com.example.busify.features.home.HomeScreen
+import com.example.busify.features.profile.ProfileScreen
 
 @Composable
 fun BusifyNavigation() {
@@ -40,8 +41,13 @@ fun BusifyNavigation() {
         }
         composable(Screen.Profile.route) {
             MainScaffold(Screen.Profile.route, navController) { 
-                // Placeholder Perfil
-                Text("Perfil en construcción", modifier = Modifier.padding(24.dp)) 
+                ProfileScreen(
+                    onLogout = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }

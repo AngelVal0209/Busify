@@ -36,7 +36,7 @@ fun HomeScreen() {
         ) {
             Column {
                 Text(
-                    text = "Hola, Nicolás 👋",
+                    text = "Hola, Usuario Prueba",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
