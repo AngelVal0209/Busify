@@ -63,7 +63,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "nicolas.perez@example.com",
+            text = "user.test@example.com",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
