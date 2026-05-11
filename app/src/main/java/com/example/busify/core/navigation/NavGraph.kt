@@ -7,17 +7,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
+import com.example.busify.features.auth.AuthViewModel
 import com.example.busify.features.auth.LoginScreen
 import com.example.busify.features.auth.RegisterScreen
 import com.example.busify.features.buses.BusesScreen
 import com.example.busify.features.home.HomeScreen
 import com.example.busify.features.profile.ProfileScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+import com.example.busify.features.admin.AdminScreen
 
 @Composable
-fun BusifyNavigation() {
+fun BusifyNavigation(
+    viewModel: AuthViewModel = viewModel()
+) {
     val navController = rememberNavController()
+    val currentUser = viewModel.currentUserData.value
+    
+    val startDestination = remember(currentUser) {
+        if (currentUser != null) Screen.Home.route else Screen.Login.route
+    }
 
-    NavHost(navController = navController, startDestination = Screen.Login.route) {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
@@ -34,15 +45,19 @@ fun BusifyNavigation() {
             )
         }
         composable(Screen.Home.route) {
-            MainScaffold(Screen.Home.route, navController) { HomeScreen() }
+            MainScaffold(Screen.Home.route, navController, viewModel) { HomeScreen() }
         }
         composable(Screen.Buses.route) {
-            MainScaffold(Screen.Buses.route, navController) { BusesScreen() }
+            MainScaffold(Screen.Buses.route, navController, viewModel) { BusesScreen() }
+        }
+        composable(Screen.Admin.route) {
+            MainScaffold(Screen.Admin.route, navController, viewModel) { AdminScreen() }
         }
         composable(Screen.Profile.route) {
-            MainScaffold(Screen.Profile.route, navController) { 
+            MainScaffold(Screen.Profile.route, navController, viewModel) { 
                 ProfileScreen(
                     onLogout = {
+                        viewModel.logout()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(0) { inclusive = true }
                         }
@@ -57,13 +72,21 @@ fun BusifyNavigation() {
 fun MainScaffold(
     currentRoute: String,
     navController: androidx.navigation.NavHostController,
+    viewModel: AuthViewModel,
     content: @Composable () -> Unit
 ) {
-    val items = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Buses,
-        BottomNavItem.Profile
-    )
+    val userData = viewModel.currentUserData.value
+    val items = remember(userData) {
+        mutableListOf(
+            BottomNavItem.Home,
+            BottomNavItem.Buses
+        ).apply {
+            if (userData?.role == 2) {
+                add(BottomNavItem.Admin)
+            }
+            add(BottomNavItem.Profile)
+        }
+    }
 
     Scaffold(
         bottomBar = {

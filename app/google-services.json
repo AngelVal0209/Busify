@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "935253224492",
+    "project_id": "busify-e041c",
+    "storage_bucket": "busify-e041c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:935253224492:android:3775b254aca04b888b3589",
+        "android_client_info": {
+          "package_name": "com.example.busify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB55eze3-kFf6f77RwyIpI97k8V0glxi-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -15,22 +15,40 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.busify.core.components.BusifyButton
 import com.example.busify.core.components.BusifyTextField
+import com.example.busify.core.util.Resource
+import android.widget.Toast
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    viewModel: AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    
+    val loginState by viewModel.loginState
+    val context = LocalContext.current
+
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is Resource.Success -> onLoginSuccess()
+            is Resource.Error -> {
+                Toast.makeText(context, loginState?.message ?: "Error", Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -74,32 +92,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Mock Credentials Info
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-            ),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            PaddingValues(16.dp).let {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Demo Mock Visual",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Usuario: 123 | Contraseña: 123",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
         BusifyTextField(
             value = email,
             onValueChange = { email = it },
@@ -134,10 +126,20 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        BusifyButton(
-            text = "Iniciar Sesión",
-            onClick = onLoginSuccess
-        )
+        if (loginState is Resource.Loading) {
+            CircularProgressIndicator()
+        } else {
+            BusifyButton(
+                text = "Iniciar Sesión",
+                onClick = {
+                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                        viewModel.login(email, password)
+                    } else {
+                        Toast.makeText(context, "Por favor llena todos los campos", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 

@@ -14,21 +14,42 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.busify.core.components.BusifyButton
 import com.example.busify.core.components.BusifyTextField
+import com.example.busify.core.util.Resource
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: AuthViewModel = viewModel()
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+
+    val registerState by viewModel.registerState
+    val context = LocalContext.current
+
+    LaunchedEffect(registerState) {
+        when (registerState) {
+            is Resource.Success -> {
+                Toast.makeText(context, "Cuenta creada exitosamente", Toast.LENGTH_SHORT).show()
+                onNavigateBack()
+            }
+            is Resource.Error -> {
+                Toast.makeText(context, registerState?.message ?: "Error", Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -108,10 +129,24 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            BusifyButton(
-                text = "Crear Cuenta",
-                onClick = { /* Solo visual */ }
-            )
+            if (registerState is Resource.Loading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                BusifyButton(
+                    text = "Crear Cuenta",
+                    onClick = {
+                        if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
+                            if (password == confirmPassword) {
+                                viewModel.register(name, email, password)
+                            } else {
+                                Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(context, "Por favor llena todos los campos", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
