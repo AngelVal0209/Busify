@@ -3,12 +3,12 @@ package com.example.busify.features.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,16 +17,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.busify.core.util.Resource
+import com.example.busify.domain.model.Route
 import com.example.busify.features.auth.AuthViewModel
+import com.example.busify.features.buses.BusesViewModel
 
 @Composable
 fun HomeScreen(
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    busesViewModel: BusesViewModel = viewModel()
 ) {
     val userData = authViewModel.currentUserData.value
+    val routesState = busesViewModel.routesState.value
     
     Column(
         modifier = Modifier
@@ -65,42 +68,30 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Search Bar (Visual)
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Busca una ruta o bus...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            shape = MaterialTheme.shapes.medium,
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedBorderColor = Color.Transparent
-            ),
-            enabled = false // Solo visual
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
         Text(
-            text = "Resumen Rápido",
+            text = "Estado del Sistema",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Stats Row
+        // Resumen con datos reales de Firebase
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            val routeCount = if (routesState is Resource.Success) routesState.data?.size ?: 0 else 0
             StatCard(
-                label = "Buses Activos",
-                value = "12",
+                label = "Rutas Activas",
+                value = routeCount.toString(),
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
             StatCard(
-                label = "Próximo Bus",
-                value = "08:30",
+                label = "Tu Rol",
+                value = when(userData?.role) {
+                    2 -> "Admin"
+                    3 -> "Chofer"
+                    else -> "Usuario"
+                },
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
@@ -109,16 +100,38 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "Rutas Populares",
+            text = "Rutas Disponibles",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(3) { index ->
-                RouteCard(index)
+        // Lista de rutas desde Firestore
+        when (routesState) {
+            is Resource.Loading -> {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is Resource.Success -> {
+                val routes = routesState.data ?: emptyList()
+                if (routes.isEmpty()) {
+                    Text(
+                        text = "No hay rutas disponibles creadas.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    )
+                } else {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        items(routes) { route ->
+                            RouteCard(route)
+                        }
+                    }
+                }
+            }
+            is Resource.Error -> {
+                Text(text = "Error al cargar rutas", color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -132,9 +145,7 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, contai
         shape = MaterialTheme.shapes.large
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Text(text = label, style = MaterialTheme.typography.labelMedium)
@@ -144,16 +155,34 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, contai
 }
 
 @Composable
-fun RouteCard(index: Int) {
+fun RouteCard(route: Route) {
     Card(
-        modifier = Modifier.width(200.dp).height(120.dp),
+        modifier = Modifier.width(220.dp).height(130.dp),
         shape = MaterialTheme.shapes.large
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Ruta ${index + 1}", fontWeight = FontWeight.Bold)
-            Text(text = "Terminal Norte - Centro", style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "${route.origin} - ${route.destination}",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1
+            )
+            Text(
+                text = "Salida: ${route.departureTime}",
+                style = MaterialTheme.typography.bodySmall
+            )
             Spacer(modifier = Modifier.weight(1f))
-            Text(text = "Cada 15 min", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                shape = CircleShape
+            ) {
+                Text(
+                    text = route.status,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
