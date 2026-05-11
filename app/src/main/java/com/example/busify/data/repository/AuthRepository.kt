@@ -4,6 +4,9 @@ import com.example.busify.core.util.Resource
 import com.example.busify.domain.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class AuthRepository(
@@ -57,5 +60,22 @@ class AuthRepository(
 
     fun logout() {
         auth.signOut()
+    }
+
+    fun listenToUserDetails(uid: String): Flow<Resource<User>> = callbackFlow {
+        val listener = firestore.collection("users").document(uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(Resource.Error(error.message ?: "Error al escuchar datos"))
+                    return@addSnapshotListener
+                }
+                if (snapshot != null && snapshot.exists()) {
+                    val user = snapshot.toObject(User::class.java)
+                    if (user != null) {
+                        trySend(Resource.Success(user))
+                    }
+                }
+            }
+        awaitClose { listener.remove() }
     }
 }

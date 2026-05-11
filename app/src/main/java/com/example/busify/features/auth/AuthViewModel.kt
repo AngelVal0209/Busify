@@ -8,6 +8,7 @@ import com.example.busify.core.util.Resource
 import com.example.busify.data.repository.AuthRepository
 import com.example.busify.domain.model.User
 import com.google.firebase.auth.FirebaseUser
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
@@ -32,9 +33,10 @@ class AuthViewModel(
 
     private fun getUserData(uid: String) {
         viewModelScope.launch {
-            val result = repository.getUserDetails(uid)
-            if (result is Resource.Success) {
-                _currentUserData.value = result.data
+            repository.listenToUserDetails(uid).collect { result ->
+                if (result is Resource.Success) {
+                    _currentUserData.value = result.data
+                }
             }
         }
     }
