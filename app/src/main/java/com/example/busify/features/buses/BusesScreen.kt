@@ -15,26 +15,17 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-data class BusMock(
-    val name: String,
-    val code: String,
-    val time: String,
-    val status: String,
-    val capacity: String
-)
-
-val mockBuses = listOf(
-    BusMock("Expreso Norte", "BUS-001", "08:00 AM", "En Camino", "45/50"),
-    BusMock("Trans Centro", "BUS-042", "08:15 AM", "A tiempo", "20/50"),
-    BusMock("Eco Ruta", "BUS-105", "08:30 AM", "Demorado", "10/50"),
-    BusMock("Línea Azul", "BUS-088", "08:45 AM", "En Camino", "48/50"),
-    BusMock("Ruta Circular", "BUS-012", "09:00 AM", "A tiempo", "5/50")
-)
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.busify.core.util.Resource
+import com.example.busify.domain.model.Route
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BusesScreen() {
+fun BusesScreen(
+    viewModel: BusesViewModel = viewModel()
+) {
+    val routesState = viewModel.routesState.value
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -45,24 +36,52 @@ fun BusesScreen() {
             )
         }
     ) { padding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            items(mockBuses) { bus ->
-                BusCard(bus)
+            when (routesState) {
+                is Resource.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is Resource.Error -> {
+                    Text(
+                        text = routesState.message ?: "Error al cargar rutas",
+                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                is Resource.Success -> {
+                    val routes = routesState.data ?: emptyList()
+                    if (routes.isEmpty()) {
+                        Text(
+                            text = "No hay rutas disponibles actualmente",
+                            modifier = Modifier.align(Alignment.Center),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(bottom = 24.dp)
+                        ) {
+                            items(routes) { route ->
+                                BusCard(route)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun BusCard(bus: BusMock) {
+fun BusCard(route: Route) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -75,11 +94,19 @@ fun BusCard(bus: BusMock) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(text = bus.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(text = bus.code, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${route.origin} → ${route.destination}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "ID: ${route.id.take(8).uppercase()}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
-                StatusBadge(bus.status)
+                StatusBadge(route.status)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -89,8 +116,8 @@ fun BusCard(bus: BusMock) {
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                InfoItem(Icons.Default.AccessTime, bus.time)
-                InfoItem(Icons.Default.People, bus.capacity)
+                InfoItem(Icons.Default.AccessTime, "${route.departureTime} - ${route.arrivalTime}")
+                InfoItem(Icons.Default.People, "Capacidad: ${route.capacity}")
             }
         }
     }

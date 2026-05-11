@@ -19,8 +19,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.busify.features.auth.AuthViewModel
+
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    authViewModel: AuthViewModel = viewModel()
+) {
+    val userData = authViewModel.currentUserData.value
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -36,7 +43,7 @@ fun HomeScreen() {
         ) {
             Column {
                 Text(
-                    text = "Hola, Usuario Prueba",
+                    text = "Hola, ${userData?.name ?: "Usuario"}",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
