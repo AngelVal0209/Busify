@@ -6,12 +6,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.busify.core.util.Resource
 import com.example.busify.data.repository.AuthRepository
+import com.example.busify.data.repository.TicketRepository
+import com.example.busify.domain.model.Ticket
 import com.example.busify.domain.model.User
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 class ProfileViewModel(
-    private val repository: AuthRepository = AuthRepository()
+    private val repository: AuthRepository = AuthRepository(),
+    private val ticketRepository: TicketRepository = TicketRepository()
 ) : ViewModel() {
 
     private val _userState = mutableStateOf<Resource<User>>(Resource.Loading())
@@ -19,6 +22,9 @@ class ProfileViewModel(
 
     private val _updateState = mutableStateOf<Resource<Boolean>?>(null)
     val updateState: State<Resource<Boolean>?> = _updateState
+
+    private val _ticketsState = mutableStateOf<Resource<List<Ticket>>>(Resource.Loading())
+    val ticketsState: State<Resource<List<Ticket>>> = _ticketsState
 
     init {
         loadUserProfile()
@@ -29,6 +35,7 @@ class ProfileViewModel(
         if (currentUser != null) {
             viewModelScope.launch {
                 _userState.value = repository.getUserDetails(currentUser.uid)
+                _ticketsState.value = ticketRepository.getUserTickets(currentUser.uid)
             }
         }
     }

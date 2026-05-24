@@ -1,5 +1,6 @@
 package com.example.busify.features.auth
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -27,37 +28,45 @@ class AuthViewModel(
     init {
         val fbUser = repository.getCurrentUser()
         if (fbUser != null) {
-            getUserData(fbUser.uid)
+            loadUserData(fbUser.uid)
         }
     }
 
-    private fun getUserData(uid: String) {
+    private fun loadUserData(uid: String) {
         viewModelScope.launch {
+            val result = repository.getUserDetails(uid)
+            if (result is Resource.Success) {
+                Log.d("AuthVM", "getUserDetails success: role=${result.data?.role}")
+                _currentUserData.value = result.data
+            } else {
+                Log.e("AuthVM", "getUserDetails failed: ${result.message}")
+            }
             repository.listenToUserDetails(uid).collect { result ->
                 if (result is Resource.Success) {
+                    Log.d("AuthVM", "snapshot listener: role=${result.data?.role}")
                     _currentUserData.value = result.data
                 }
             }
         }
     }
-
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _loginState.value = Resource.Loading()
             val result = repository.login(email, password)
             _loginState.value = result
             if (result is Resource.Success) {
+                Log.d("AuthVM", "login success: role=${result.data?.role}")
                 _currentUserData.value = result.data
             }
         }
     }
-
     fun register(name: String, email: String, password: String) {
         viewModelScope.launch {
             _registerState.value = Resource.Loading()
             val result = repository.register(name, email, password)
             _registerState.value = result
             if (result is Resource.Success) {
+                Log.d("AuthVM", "register success: role=${result.data?.role}")
                 _currentUserData.value = result.data
             }
         }

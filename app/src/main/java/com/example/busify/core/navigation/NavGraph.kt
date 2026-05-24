@@ -1,5 +1,6 @@
 package com.example.busify.core.navigation
 
+import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -56,7 +57,7 @@ fun BusifyNavigation(
         composable(Screen.Login.route) {
 
             LoginScreen(
-
+                viewModel = viewModel,
                 onLoginSuccess = {
 
                     navController.navigate(Screen.Home.route) {
@@ -80,7 +81,7 @@ fun BusifyNavigation(
         composable(Screen.Register.route) {
 
             RegisterScreen(
-
+                viewModel = viewModel,
                 onNavigateBack = {
 
                     navController.popBackStack()
@@ -99,7 +100,7 @@ fun BusifyNavigation(
                 viewModel = viewModel
             ) {
 
-                HomeScreen()
+                HomeScreen(authViewModel = viewModel)
             }
         }
 
@@ -129,7 +130,7 @@ fun BusifyNavigation(
                 viewModel = viewModel
             ) {
 
-                AdminScreen()
+                AdminScreen(authViewModel = viewModel)
             }
         }
 
@@ -179,92 +180,48 @@ fun BusifyNavigation(
         // =========================
         // SEATS
         // =========================
-        composable(
-            route = Screen.Seats.route
-        ) {
-
+        composable(route = Screen.Seats.route) {
             SeatSelectionScreen(
-
                 navController = navController,
-
-                company = it.arguments
-                    ?.getString("company") ?: "",
-
-                origin = it.arguments
-                    ?.getString("origin") ?: "",
-
-                destination = it.arguments
-                    ?.getString("destination") ?: "",
-
-                price = it.arguments
-                    ?.getString("price")
-                    ?.toDouble() ?: 0.0
+                routeId = it.arguments?.getString("routeId") ?: "",
+                company = it.arguments?.getString("company") ?: "",
+                origin = it.arguments?.getString("origin") ?: "",
+                destination = it.arguments?.getString("destination") ?: "",
+                price = it.arguments?.getString("price")?.toDouble() ?: 0.0,
+                departureTime = it.arguments?.getString("departureTime") ?: ""
             )
         }
 
         // =========================
         // PAYMENT
         // =========================
-        composable(
-            route = Screen.Payment.route
-        ) {
-
+        composable(route = Screen.Payment.route) {
             PaymentScreen(
-
                 navController = navController,
-
-                company = it.arguments
-                    ?.getString("company") ?: "",
-
-                origin = it.arguments
-                    ?.getString("origin") ?: "",
-
-                destination = it.arguments
-                    ?.getString("destination") ?: "",
-
-                seat = it.arguments
-                    ?.getString("seat")
-                    ?.toInt() ?: 0,
-
-                price = it.arguments
-                    ?.getString("price")
-                    ?.toDouble() ?: 0.0
+                routeId = it.arguments?.getString("routeId") ?: "",
+                company = it.arguments?.getString("company") ?: "",
+                origin = it.arguments?.getString("origin") ?: "",
+                destination = it.arguments?.getString("destination") ?: "",
+                seats = it.arguments?.getString("seats") ?: "",
+                price = it.arguments?.getString("price")?.toDouble() ?: 0.0,
+                departureTime = it.arguments?.getString("departureTime") ?: ""
             )
         }
 
         // =========================
         // TICKET
         // =========================
-        composable(
-            route = Screen.Ticket.route
-        ) {
-
+        composable(route = Screen.Ticket.route) {
             TicketScreen(
-
-                // =========================
-                // ESTO FALTABA
-                // =========================
                 navController = navController,
-
-                company = it.arguments
-                    ?.getString("company") ?: "",
-
-                origin = it.arguments
-                    ?.getString("origin") ?: "",
-
-                destination = it.arguments
-                    ?.getString("destination") ?: "",
-
-                seat = it.arguments
-                    ?.getString("seat")
-                    ?.toInt() ?: 0,
-
-                price = it.arguments
-                    ?.getString("price")
-                    ?.toDouble() ?: 0.0,
-
-                paymentMethod = it.arguments
-                    ?.getString("paymentMethod") ?: ""
+                routeId = it.arguments?.getString("routeId") ?: "",
+                company = it.arguments?.getString("company") ?: "",
+                origin = it.arguments?.getString("origin") ?: "",
+                destination = it.arguments?.getString("destination") ?: "",
+                seats = it.arguments?.getString("seats") ?: "",
+                price = it.arguments?.getString("price")?.toDouble() ?: 0.0,
+                paymentMethod = it.arguments?.getString("paymentMethod") ?: "",
+                departureTime = it.arguments?.getString("departureTime") ?: ""
             )
         }
     }
@@ -284,6 +241,8 @@ fun MainScaffold(
 
     val userData = viewModel.currentUserData.value
 
+    Log.d("NavGraph", "MainScaffold render: userData=$userData, role=${userData?.role}, isAdmin=${userData?.role == 2L}")
+
     val items = remember(userData) {
 
         mutableListOf(
@@ -297,9 +256,11 @@ fun MainScaffold(
             // =========================
             // ADMIN
             // =========================
-            if (userData?.role == 2) {
+            if (userData?.role == 2L) {
 
                 add(BottomNavItem.Admin)
+
+                Log.d("NavGraph", "Admin item added to nav bar")
             }
 
             // =========================

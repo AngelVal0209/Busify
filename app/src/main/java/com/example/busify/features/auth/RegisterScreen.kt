@@ -14,38 +14,37 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.busify.core.components.BusifyButton
 import com.example.busify.core.components.BusifyTextField
 import com.example.busify.core.util.Resource
-import android.widget.Toast
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AuthViewModel = viewModel()
+    viewModel: AuthViewModel
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val registerState by viewModel.registerState
-    val context = LocalContext.current
 
     LaunchedEffect(registerState) {
         when (registerState) {
             is Resource.Success -> {
-                Toast.makeText(context, "Cuenta creada exitosamente", Toast.LENGTH_SHORT).show()
+                snackbarHostState.showSnackbar("Cuenta creada exitosamente")
                 onNavigateBack()
             }
             is Resource.Error -> {
-                Toast.makeText(context, registerState?.message ?: "Error", Toast.LENGTH_SHORT).show()
+                snackbarHostState.showSnackbar(registerState?.message ?: "Error")
             }
             else -> {}
         }
@@ -64,7 +63,8 @@ fun RegisterScreen(
                     containerColor = Color.Transparent
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -139,10 +139,14 @@ fun RegisterScreen(
                             if (password == confirmPassword) {
                                 viewModel.register(name, email, password)
                             } else {
-                                Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Las contraseñas no coinciden")
+                                }
                             }
                         } else {
-                            Toast.makeText(context, "Por favor llena todos los campos", Toast.LENGTH_SHORT).show()
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Por favor llena todos los campos")
+                            }
                         }
                     }
                 )
