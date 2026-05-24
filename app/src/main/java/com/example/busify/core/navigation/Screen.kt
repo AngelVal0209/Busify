@@ -15,14 +15,13 @@ sealed class Screen(val route: String) {
     object Buses : Screen("buses")
     object Profile : Screen("profile")
     object Admin : Screen("admin")
-    //viajes
     object Viajes : Screen("viajes")
-    //
-    object Seats : Screen("seats/{company}/{origin}/{destination}/{price}")
 
-    object Payment : Screen("payment/{company}/{origin}/{destination}/{seat}/{price}")
+    object Seats : Screen("seats/{routeId}/{company}/{origin}/{destination}/{price}/{departureTime}")
 
-    object Ticket : Screen("ticket/{company}/{origin}/{destination}/{seat}/{price}/{paymentMethod}")
+    object Payment : Screen("payment/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{departureTime}")
+
+    object Ticket : Screen("ticket/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{paymentMethod}/{departureTime}")
 }
 
 sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector) {

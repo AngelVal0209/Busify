@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,10 +23,12 @@ import com.example.busify.core.util.Resource
 import com.example.busify.domain.model.Route
 import com.example.busify.features.auth.AuthViewModel
 import com.example.busify.features.buses.BusesViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun HomeScreen(
-    authViewModel: AuthViewModel = viewModel(),
+    authViewModel: AuthViewModel,
     busesViewModel: BusesViewModel = viewModel()
 ) {
     val userData = authViewModel.currentUserData.value
@@ -38,7 +41,6 @@ fun HomeScreen(
             .padding(24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Top Bar
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -76,7 +78,6 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Resumen con datos reales de Firebase
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             val routeCount = if (routesState is Resource.Success) routesState.data?.size ?: 0 else 0
             StatCard(
@@ -88,8 +89,8 @@ fun HomeScreen(
             StatCard(
                 label = "Tu Rol",
                 value = when(userData?.role) {
-                    2 -> "Admin"
-                    3 -> "Chofer"
+                    2L -> "Admin"
+                    3L -> "Chofer"
                     else -> "Usuario"
                 },
                 modifier = Modifier.weight(1f),
@@ -107,7 +108,6 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Lista de rutas desde Firestore
         when (routesState) {
             is Resource.Loading -> {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -156,8 +156,15 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, contai
 
 @Composable
 fun RouteCard(route: Route) {
+    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("es", "PE")) }
+    val departureStr = if (route.departureDate > 0) {
+        "${dateFormat.format(Date(route.departureDate))} ${route.departureTime}"
+    } else {
+        route.departureTime
+    }
+
     Card(
-        modifier = Modifier.width(220.dp).height(130.dp),
+        modifier = Modifier.width(240.dp).height(150.dp),
         shape = MaterialTheme.shapes.large
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -168,8 +175,18 @@ fun RouteCard(route: Route) {
                 maxLines = 1
             )
             Text(
-                text = "Salida: ${route.departureTime}",
+                text = route.company,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "Salida: $departureStr",
                 style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = "S/ ${route.price}",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.weight(1f))
             Surface(

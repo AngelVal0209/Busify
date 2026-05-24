@@ -5,10 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -17,7 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.busify.core.util.Resource
+import com.example.busify.data.repository.TicketRepository
 import com.example.busify.domain.model.Route
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,6 +29,16 @@ fun BusesScreen(
     viewModel: BusesViewModel = viewModel()
 ) {
     val routesState = viewModel.routesState.value
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            viewModel.getRoutes()
+            isRefreshing = false
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -62,15 +76,21 @@ fun BusesScreen(
                             style = MaterialTheme.typography.bodyLarge
                         )
                     } else {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 24.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(bottom = 24.dp)
+                        PullToRefreshBox(
+                            isRefreshing = isRefreshing,
+                            onRefresh = { isRefreshing = true },
+                            state = pullToRefreshState
                         ) {
-                            items(routes) { route ->
-                                BusCard(route)
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 24.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                contentPadding = PaddingValues(bottom = 24.dp)
+                            ) {
+                                items(routes) { route ->
+                                    BusCard(route)
+                                }
                             }
                         }
                     }
@@ -82,6 +102,13 @@ fun BusesScreen(
 
 @Composable
 fun BusCard(route: Route) {
+    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("es", "PE")) }
+    val departureStr = if (route.departureDate > 0) {
+        "${dateFormat.format(Date(route.departureDate))} ${route.departureTime}"
+    } else {
+        route.departureTime
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -101,7 +128,7 @@ fun BusCard(route: Route) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "ID: ${route.id.take(8).uppercase()}",
+                        text = route.company,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -109,15 +136,27 @@ fun BusCard(route: Route) {
                 StatusBadge(route.status)
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Divider(modifier = Modifier.alpha(0.1f))
+            HorizontalDivider(modifier = Modifier.alpha(0.1f))
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                InfoItem(Icons.Default.AccessTime, "${route.departureTime} - ${route.arrivalTime}")
+                InfoItem(Icons.Default.AccessTime, departureStr)
+                InfoItem(Icons.Default.AccessTime, "Llega: ${route.arrivalTime}")
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 InfoItem(Icons.Default.People, "Capacidad: ${route.capacity}")
+                InfoItem(Icons.Default.AttachMoney, "S/ ${route.price}")
+            }
+
+            if (route.driverName.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                InfoItem(Icons.Default.Person, "Conductor: ${route.driverName}")
             }
         }
     }
@@ -154,7 +193,7 @@ fun InfoItem(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String
             modifier = Modifier.size(16.dp),
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,

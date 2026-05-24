@@ -1,163 +1,196 @@
 package com.example.busify.features.viajes
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.busify.core.util.Resource
+import com.example.busify.data.repository.RouteRepository
+import com.example.busify.data.repository.TicketRepository
+import com.example.busify.domain.model.Ticket
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentScreen(
     navController: NavController,
+    routeId: String,
     company: String,
     origin: String,
     destination: String,
-    seat: Int,
-    price: Double
+    seats: String,
+    price: Double,
+    departureTime: String
 ) {
+    val scope = rememberCoroutineScope()
+    val ticketRepository = remember { TicketRepository() }
+    val routeRepository = remember { RouteRepository() }
+    var selectedMethod by remember { mutableStateOf("Yape") }
+    var isPaying by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    val context = LocalContext.current
-
-    var selectedMethod by remember {
-        mutableStateOf("Yape")
+    val seatList = remember(seats) {
+        seats.split("_").mapNotNull { it.toLongOrNull() }
     }
+    val totalPrice = remember(seatList, price) { seatList.size * price }
 
     Scaffold(
-
-        // =========================
-        // TOP BAR
-        // =========================
         topBar = {
-
             TopAppBar(
-
-                title = {
-
-                    Text("Pago")
-                },
-
+                title = { Text("Pago") },
                 navigationIcon = {
-
-                    IconButton(
-                        onClick = {
-
-                            navController.popBackStack()
-                        }
-                    ) {
-
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
-        }
-
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-
         Column(
-
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp)
         ) {
-
             Text(
                 text = "Resumen de Compra",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Empresa: $company",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                text = "Ruta: $origin → $destination"
-            )
-
-            Text(
-                text = "Asiento: $seat"
-            )
-
-            Text(
-                text = "Precio: S/ $price"
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    DetailRow("Empresa", company)
+                    DetailRow("Ruta", "$origin → $destination")
+                    DetailRow("Salida", departureTime)
+                    DetailRow("Asientos", seatList.sorted().joinToString(", "))
+                    DetailRow("Cantidad", "${seatList.size}")
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    DetailRow("Precio unitario", "S/ $price")
+                    DetailRow("Total", "S/ ${"%.2f".format(totalPrice)}")
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "Método de Pago",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row {
-
-                Button(
-                    onClick = {
-
-                        selectedMethod = "Yape"
-                    }
-                ) {
-
-                    Text("Yape")
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Button(
-                    onClick = {
-
-                        selectedMethod = "Visa"
-                    }
-                ) {
-
-                    Text("Visa")
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                FilterChip(
+                    selected = selectedMethod == "Yape",
+                    onClick = { selectedMethod = "Yape" },
+                    label = { Text("Yape") }
+                )
+                FilterChip(
+                    selected = selectedMethod == "Visa",
+                    onClick = { selectedMethod = "Visa" },
+                    label = { Text("Visa") }
+                )
+                FilterChip(
+                    selected = selectedMethod == "Plin",
+                    onClick = { selectedMethod = "Plin" },
+                    label = { Text("Plin") }
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Seleccionado: $selectedMethod"
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
             Button(
-
                 onClick = {
-
-                    Toast.makeText(
-                        context,
-                        "Pago realizado",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    navController.navigate(
-                        "ticket/$company/$origin/$destination/$seat/$price/$selectedMethod"
+                    isPaying = true
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                    if (userId.isEmpty()) {
+                        scope.launch { snackbarHostState.showSnackbar("Error: Usuario no autenticado") }
+                        isPaying = false
+                        return@Button
+                    }
+                    val ticket = Ticket(
+                        userId = userId,
+                        routeId = routeId,
+                        company = company,
+                        origin = origin,
+                        destination = destination,
+                        departureTime = departureTime,
+                        seatNumbers = seatList,
+                        totalPrice = totalPrice,
+                        paymentMethod = selectedMethod,
+                        status = "confirmado"
                     )
+
+                    scope.launch {
+                        val result = ticketRepository.saveTicket(ticket)
+                        when (result) {
+                            is Resource.Success -> {
+                                routeRepository.decrementCapacity(routeId, seatList.size)
+                                snackbarHostState.showSnackbar("Pago realizado con éxito")
+                                navController.navigate(
+                                    "ticket/$routeId/$company/$origin/$destination/$seats/$price/$selectedMethod/$departureTime"
+                                ) {
+                                    popUpTo("viajes") { inclusive = false }
+                                }
+                            }
+                            is Resource.Error -> {
+                                snackbarHostState.showSnackbar(result.message ?: "Error al procesar pago")
+                            }
+                            else -> {}
+                        }
+                        isPaying = false
+                    }
                 },
-
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                enabled = !isPaying,
+                shape = MaterialTheme.shapes.medium
             ) {
-
-                Text("Pagar")
+                if (isPaying) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Pagar S/ ${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold)
+                }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+}
+
+@Composable
+private fun DetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

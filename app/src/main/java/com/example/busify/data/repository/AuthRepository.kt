@@ -58,6 +58,26 @@ class AuthRepository(
         }
     }
 
+    suspend fun getAllUsers(): Resource<List<User>> {
+        return try {
+            val snapshot = firestore.collection("users").get().await()
+            val users = snapshot.toObjects(User::class.java)
+            Resource.Success(users)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al obtener usuarios")
+        }
+    }
+
+    suspend fun updateUserRole(uid: String, role: Long): Resource<Boolean> {
+        return try {
+            firestore.collection("users").document(uid)
+                .update("role", role).await()
+            Resource.Success(true)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al actualizar rol")
+        }
+    }
+
     fun logout() {
         auth.signOut()
     }
