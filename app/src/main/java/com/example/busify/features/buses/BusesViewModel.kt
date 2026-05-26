@@ -16,6 +16,12 @@ class BusesViewModel(
     private val _routesState = mutableStateOf<Resource<List<Route>>>(Resource.Loading())
     val routesState: State<Resource<List<Route>>> = _routesState
 
+    private val _searchOrigin = mutableStateOf("")
+    val searchOrigin: State<String> = _searchOrigin
+
+    private val _searchDestination = mutableStateOf("")
+    val searchDestination: State<String> = _searchDestination
+
     init {
         getRoutes()
     }
@@ -26,5 +32,12 @@ class BusesViewModel(
             val result = repository.getRoutes()
             _routesState.value = result
         }
+    }
+
+    fun setSearchOrigin(origin: String) { _searchOrigin.value = origin }
+    fun setSearchDestination(destination: String) { _searchDestination.value = destination }
+    fun clearSearch() {
+        _searchOrigin.value = ""
+        _searchDestination.value = ""
     }
 }

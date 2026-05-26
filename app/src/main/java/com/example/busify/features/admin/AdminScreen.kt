@@ -1,21 +1,19 @@
 package com.example.busify.features.admin
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -102,9 +100,9 @@ fun AdminScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "Panel de Administración",
@@ -114,46 +112,48 @@ fun AdminScreen(
             Text(
                 text = "Gestiona rutas, usuarios y más",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             val user = authViewModel?.currentUserData?.value
-            Log.d("AdminScreen", "authViewModel=${authViewModel}, user=$user, role=${user?.role}")
             if (user != null) {
+                val roleName = when (user.role) { 2L -> "Admin"; 3L -> "Conductor"; else -> "Usuario" }
+                val roleColor = when (user.role) {
+                    2L -> MaterialTheme.colorScheme.tertiary
+                    3L -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
                 Text(
-                    text = "Tu rol: ${user.role} (${if (user.role == 1L) "Usuario" else if (user.role == 2L) "Admin" else if (user.role == 3L) "Conductor" else "Desconocido"})",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (user.role == 2L) Color(0xFF1A6B52) else Color(0xFFB91C1C)
-                )
-            } else {
-                Text(
-                    text = "role: no cargado",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFB91C1C)
+                    text = "Rol: $roleName",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = roleColor
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             TabRow(selectedTabIndex = selectedTab) {
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { viewModel.setSelectedTab(0) },
-                    text = { Text(if (editingRoute != null) "✏️ Editar Ruta" else "➕ Crear Ruta") }
+                    icon = { Icon(if (editingRoute != null) Icons.Default.Edit else Icons.Default.Add, null, modifier = Modifier.size(18.dp)) },
+                    text = { Text(if (editingRoute != null) "Editar" else "Crear") }
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { viewModel.setSelectedTab(1); viewModel.loadRoutes() },
-                    text = { Text("📋 Rutas") }
+                    icon = { Icon(Icons.AutoMirrored.Filled.List, null, modifier = Modifier.size(18.dp)) },
+                    text = { Text("Rutas") }
                 )
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { viewModel.setSelectedTab(2); viewModel.loadUsers() },
-                    text = { Text("👥 Usuarios") }
+                    icon = { Icon(Icons.Default.People, null, modifier = Modifier.size(18.dp)) },
+                    text = { Text("Usuarios") }
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             when (selectedTab) {
                 0 -> CreateRouteTab(
@@ -287,7 +287,7 @@ private fun CreateRouteTab(
         if (editingRoute != null) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(12.dp),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -300,7 +300,8 @@ private fun CreateRouteTab(
                         "Editando: ${editingRoute.origin} → ${editingRoute.destination}",
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     IconButton(onClick = onCancelEdit) {
                         Icon(Icons.Default.Close, contentDescription = "Cancelar edición", tint = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -315,7 +316,7 @@ private fun CreateRouteTab(
             onValueChange = { onFieldChange("company", it) },
             label = { Text("Empresa de Transporte") },
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
+            shape = MaterialTheme.shapes.large,
             placeholder = { Text("Ej. Cruz del Sur") },
             isError = fieldErrors.company != null,
             supportingText = fieldErrors.company?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
@@ -334,8 +335,8 @@ private fun CreateRouteTab(
                 readOnly = true,
                 label = { Text("Tipo de Bus") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = busTypeExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(),
-                shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                shape = MaterialTheme.shapes.large,
                 leadingIcon = { Icon(Icons.Default.DirectionsBus, contentDescription = null) }
             )
             ExposedDropdownMenu(expanded = busTypeExpanded, onDismissRequest = { busTypeExpanded = false }) {
@@ -359,7 +360,7 @@ private fun CreateRouteTab(
                 onValueChange = { onFieldChange("origin", it) },
                 label = { Text("Lugar de Salida") },
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 isError = fieldErrors.origin != null,
                 supportingText = fieldErrors.origin?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                 leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
@@ -369,7 +370,7 @@ private fun CreateRouteTab(
                 onValueChange = { onFieldChange("destination", it) },
                 label = { Text("Lugar de Llegada") },
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 isError = fieldErrors.destination != null,
                 supportingText = fieldErrors.destination?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                 leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
@@ -386,7 +387,7 @@ private fun CreateRouteTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onDepartureDateClick() },
-            shape = MaterialTheme.shapes.medium,
+            shape = MaterialTheme.shapes.large,
             isError = fieldErrors.departureDate != null,
             supportingText = fieldErrors.departureDate?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
             trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Seleccionar fecha") },
@@ -409,7 +410,7 @@ private fun CreateRouteTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onArrivalDateClick() },
-            shape = MaterialTheme.shapes.medium,
+            shape = MaterialTheme.shapes.large,
             isError = fieldErrors.arrivalDate != null,
             supportingText = fieldErrors.arrivalDate?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
             trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = "Seleccionar fecha") },
@@ -433,7 +434,7 @@ private fun CreateRouteTab(
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onDepartureTimeClick() },
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 isError = fieldErrors.departureTime != null,
                 supportingText = fieldErrors.departureTime?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                 trailingIcon = { Icon(Icons.Default.AccessTime, contentDescription = "Seleccionar hora") },
@@ -454,7 +455,7 @@ private fun CreateRouteTab(
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onArrivalTimeClick() },
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 isError = fieldErrors.arrivalTime != null,
                 supportingText = fieldErrors.arrivalTime?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                 trailingIcon = { Icon(Icons.Default.AccessTime, contentDescription = "Seleccionar hora") },
@@ -477,7 +478,7 @@ private fun CreateRouteTab(
                 onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) onFieldChange("price", it) },
                 label = { Text("Precio (S/)") },
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 placeholder = { Text("Ej. 70") },
                 isError = fieldErrors.price != null,
                 supportingText = fieldErrors.price?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
@@ -488,7 +489,7 @@ private fun CreateRouteTab(
                 onValueChange = { if (it.all { char -> char.isDigit() }) onFieldChange("capacity", it) },
                 label = { Text("Capacidad") },
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 isError = fieldErrors.capacity != null,
                 supportingText = fieldErrors.capacity?.let { { Text(it, color = MaterialTheme.colorScheme.error) } },
                 leadingIcon = { Icon(Icons.Default.People, contentDescription = null) }
@@ -509,8 +510,8 @@ private fun CreateRouteTab(
                     readOnly = true,
                     label = { Text("Estado") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    shape = MaterialTheme.shapes.medium
+                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    shape = MaterialTheme.shapes.large
                 )
                 ExposedDropdownMenu(expanded = statusExpanded, onDismissRequest = { statusExpanded = false }) {
                     statuses.forEach { s ->
@@ -530,18 +531,18 @@ private fun CreateRouteTab(
                 onValueChange = { onFieldChange("driverName", it) },
                 label = { Text("Conductor") },
                 modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium,
+                shape = MaterialTheme.shapes.large,
                 placeholder = { Text("Nombre del conductor") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = onSubmit,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = MaterialTheme.shapes.small,
             enabled = createRouteState !is Resource.Loading
         ) {
             if (createRouteState is Resource.Loading) {
@@ -579,7 +580,7 @@ private fun ManageRoutesTab(
             onValueChange = onSearchChange,
             label = { Text("Buscar rutas...") },
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
+            shape = MaterialTheme.shapes.large,
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
             singleLine = true
         )
@@ -606,7 +607,7 @@ private fun ManageRoutesTab(
                         Text(
                             if (searchQuery.isNotBlank()) "No se encontraron rutas con ese filtro"
                             else "No hay rutas disponibles",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 } else {
@@ -641,8 +642,9 @@ private fun RouteManagementCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -662,13 +664,13 @@ private fun RouteManagementCard(
                 Text(
                     text = "$dateStr | S/ ${route.price} | Cap: ${route.capacity}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (route.driverName.isNotBlank()) {
                     Text(
                         text = "Conductor: ${route.driverName}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -752,7 +754,7 @@ private fun ManageUsersTab(
         Text(
             text = "Administra los roles de los usuarios",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -810,15 +812,16 @@ private fun UserManagementCard(
         else -> "Usuario"
     }
     val roleColor = when (user.role) {
-        2L -> Color(0xFF1A6B52)
-        3L -> Color(0xFFF59E0B)
-        else -> Color(0xFF6B7280)
+        2L -> MaterialTheme.colorScheme.tertiary
+        3L -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -828,7 +831,7 @@ private fun UserManagementCard(
                 Icons.Default.Person,
                 contentDescription = null,
                 modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -840,12 +843,12 @@ private fun UserManagementCard(
                 Text(
                     text = user.email,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Surface(
                     color = roleColor.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(4.dp)
+                    shape = MaterialTheme.shapes.extraSmall
                 ) {
                     Text(
                         text = roleLabel,
@@ -861,7 +864,7 @@ private fun UserManagementCard(
                     Icon(
                         Icons.Default.AdminPanelSettings,
                         contentDescription = "Hacer administrador",
-                        tint = Color(0xFF1A6B52)
+                        tint = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
@@ -870,7 +873,7 @@ private fun UserManagementCard(
                     Icon(
                         Icons.Default.Person,
                         contentDescription = "Quitar admin",
-                        tint = Color(0xFF6B7280)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

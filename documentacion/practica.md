@@ -21,6 +21,10 @@
 14. [DatePicker y TimePicker](#14-datepicker-y-timepicker)
 15. [Código QR](#15-código-qr)
 16. [Notificaciones Push FCM](#16-notificaciones-push-fcm)
+17. [Optimización de UI para Mejor Rendimiento](#17-optimización-de-ui-para-mejor-rendimiento)
+18. [Preguntas Típicas de Examen (Avanzadas)](#18-preguntas-típicas-de-examen-avanzadas)
+19. [Errores Comunes y Soluciones](#errores-comunes-y-soluciones)
+20. [Glosario Rápido (Ampliado)](#glosario-rápido-ampliado)
 
 ---
 
@@ -938,4 +942,285 @@ val maxSeats = minOf(5, availableCount)
 
 ---
 
+## 17. Optimización de UI para Mejor Rendimiento
+
+### Problemas comunes de rendimiento en Compose:
+
+```kotlin
+// ❌ MAL: Crear colores en cada recomposición
+Text(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+
+// ✅ BIEN: Usar constante pre-computada
+Text(color = TextSecondaryAlpha60)
+```
+
+### Reglas de oro para UI rápida:
+
+1. **Prefiere `Column` sobre `LazyColumn`** para listas pequeñas (< 20 items)
+2. **Evita `verticalScroll` + `LazyColumn` anidados** → usa un solo scroll
+3. **Extrae colores con alpha** a constantes en `Color.kt`
+4. **Reduce tamaño de QR** de 512×512 a 256×256
+5. **Usa `remember`** para objetos pesados (DateFormatter, QR bitmaps)
+6. **Evita emojis en UI** → usa Material Icons (vectoriales, más ligeros)
+7. **Reduce elevaciones** de tarjetas (2dp → 1dp)
+8. **Reduce padding** de 24dp → 16dp donde sea posible
+
+### Ejemplo de optimización de perfil (antes y después):
+
+**Antes (lento):**
+```kotlin
+Column { // No scrollable
+    // ...
+    LazyColumn { // Nested LazyColumn, consume mucha memoria
+        items(tickets) { ... }
+    }
+    Spacer(modifier = Modifier.weight(1f))
+    BusifyButton(text = "Cerrar Sesión")
+}
+```
+
+**Después (rápido):**
+```kotlin
+Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+    // ...
+    Column { // Simple Column en lugar de LazyColumn
+        tickets.forEach { ticket ->
+            TicketHistoryCard(ticket = ticket, ...)
+        }
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+    BusifyButton(text = "Cerrar Sesión")
+}
+```
+
+---
+
+## 18. Preguntas Típicas de Examen (Avanzadas)
+
+### 7. "Haz que la app sea más rápida"
+```kotlin
+// En Color.kt - Pre-computar colores alpha
+val TextSecondaryAlpha60 = TextSecondary.copy(alpha = 0.6f)
+
+// En Buttons.kt - Reducir altura y radio
+.height(48.dp) // en lugar de 56.dp
+RoundedCornerShape(12.dp) // en lugar de 16.dp
+
+// En TicketScreen - Reducir QR
+writer.encode(content, BarcodeFormat.QR_CODE, 256, 256) // en lugar de 512
+```
+
+### 8. "Agrega un icono en lugar de emoji en AdminScreen"
+```kotlin
+// ❌ Antes:
+Tab(text = { Text("➕ Crear Ruta") })
+
+// ✅ Después:
+Tab(
+    icon = { Icon(Icons.Default.Add, null) },
+    text = { Text("Crear") }
+)
+```
+
+### 9. "Cambia el color del texto secundario en todo el proyecto"
+```kotlin
+// En Color.kt:
+val TextSecondaryAlpha60 = TextSecondary.copy(alpha = 0.6f)
+// Luego usarlo en todas las pantallas en lugar de:
+// MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+```
+
+### 10. "Muestra un mensaje de error si no hay conexión a Firebase"
+```kotlin
+// En RouteRepository:
+try {
+    val snapshot = firestore.collection("routes").get().await()
+    Resource.Success(snapshot.toObjects(Route::class.java))
+} catch (e: com.google.firebase.firestore.FirebaseFirestoreException) {
+    Resource.Error("Sin conexión a internet. Verifica tu red.")
+} catch (e: Exception) {
+    Resource.Error(e.message ?: "Error desconocido")
+}
+```
+
+### 11. "Agrega un botón de ayuda en la pantalla de login"
+```kotlin
+// En LoginScreen.kt, dentro del Column:
+Spacer(modifier = Modifier.height(8.dp))
+BusifyOutlinedButton(
+    text = "¿Necesitas ayuda?",
+    onClick = { /* navegar a pantalla de ayuda */ }
+)
+```
+
+### 12. "Filtra las rutas por empresa específica"
+```kotlin
+// En BusesViewModel o repository:
+suspend fun getRoutesByCompany(company: String): Resource<List<Route>> {
+    val snapshot = firestore.collection("routes")
+        .whereEqualTo("company", company)
+        .get().await()
+    return Resource.Success(snapshot.toObjects(Route::class.java))
+}
+```
+
+### 13. "Haz que el botón de pago se deshabilite si no hay asientos"
+```kotlin
+// En PaymentScreen:
+val isDisabled = seatList.isEmpty() || isPaying
+
+Button(
+    onClick = { /* pagar */ },
+    enabled = !isDisabled,
+    modifier = Modifier.fillMaxWidth().height(48.dp),
+    shape = MaterialTheme.shapes.medium
+) {
+    Text("Pagar S/ ${"%.2f".format(totalPrice)}")
+}
+```
+
+### 14. "Agrega un confirmación antes de cerrar sesión"
+```kotlin
+// En ProfileScreen:
+var showLogoutDialog by remember { mutableStateOf(false) }
+
+if (showLogoutDialog) {
+    AlertDialog(
+        onDismissRequest = { showLogoutDialog = false },
+        title = { Text("Cerrar Sesión") },
+        text = { Text("¿Estás seguro de que deseas cerrar sesión?") },
+        confirmButton = {
+            Button(onClick = { showLogoutDialog = false; onLogout() }) {
+                Text("Sí, cerrar sesión")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = { showLogoutDialog = false }) {
+                Text("Cancelar")
+            }
+        }
+    )
+}
+// Cambiar onClick del botón de cerrar sesión:
+BusifyButton(
+    text = "Cerrar Sesión",
+    onClick = { showLogoutDialog = true },
+    containerColor = MaterialTheme.colorScheme.error
+)
+```
+
+### 15. "Agrega un campo de descuento a las rutas"
+```kotlin
+// 1. Route.kt: val discount: Double = 0.0
+// 2. AdminFormState: val discount: String = "0"
+// 3. AdminViewModel.updateField(): "discount" -> copy(discount = value)
+// 4. AdminScreen: Agregar OutlinedTextField para descuento
+// 5. Mostrar en BusCard: if (route.discount > 0) { ... }
+```
+
+### 16. "Muestra un indicador de carga mientras se procesa el pago"
+```kotlin
+// En PaymentScreen:
+var isPaying by remember { mutableStateOf(false) }
+
+Button(
+    onClick = {
+        isPaying = true
+        scope.launch {
+            // ... lógica de pago
+            isPaying = false
+        }
+    },
+    enabled = !isPaying
+) {
+    if (isPaying) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(24.dp),
+            color = MaterialTheme.colorScheme.onPrimary,
+            strokeWidth = 2.dp
+        )
+    } else {
+        Text("Pagar S/ ${"%.2f".format(totalPrice)}")
+    }
+}
+```
+
+### 17. "Agrega un campo de búsqueda por empresa en BusesScreen"
+```kotlin
+// En BusesScreen:
+var companyFilter by remember { mutableStateOf("") }
+
+OutlinedTextField(
+    value = companyFilter,
+    onValueChange = { companyFilter = it },
+    label = { Text("Buscar por empresa") },
+    modifier = Modifier.fillMaxWidth(),
+    singleLine = true
+)
+
+// Filtrar:
+val filteredRoutes = routes.filter {
+    it.company.contains(companyFilter, ignoreCase = true) ||
+    it.origin.contains(companyFilter, ignoreCase = true)
+}
+```
+
+### 18. "Usa un StateFlow en lugar de mutableStateOf en ViewModel"
+```kotlin
+// Alternativa más profesional:
+class MiViewModel : ViewModel() {
+    private val _state = MutableStateFlow<Resource<List<Route>>>(Resource.Loading())
+    val state: StateFlow<Resource<List<Route>>> = _state.asStateFlow()
+    
+    fun loadData() {
+        viewModelScope.launch {
+            _state.value = Resource.Loading()
+            _state.value = repository.getRoutes()
+        }
+    }
+}
+
+// En el Screen:
+val state by viewModel.state.collectAsState()
+```
+
+---
+
+## Errores Comunes y Soluciones
+
+| Error | Causa | Solución |
+|-------|-------|----------|
+| `java.lang.ClassCastException: java.lang.Long cannot be cast to java.lang.Integer` | Firestore guarda números como `Long` | Usar `Long` en modelos, comparar con `2L` |
+| `FAILED_PRECONDITION: The query requires an index` | `orderBy()` sin índice compuesto | Eliminar `orderBy()` y ordenar en memoria con `.sortedBy()` |
+| App lenta al scrollear | Demasiadas tarjetas con sombras | Reducir `elevation`, usar `shape = MaterialTheme.shapes.medium` |
+| `CircularProgressIndicator` nunca desaparece | Error silencioso en corrutina | Envolver en `try/catch` y actualizar estado en ambos casos |
+| Los tickets no aparecen en perfil | `orderBy()` sin índice en Firestore | Usar `.sortedByDescending { it.createdAt }` en memoria |
+| El rol de admin no se refleja | ViewModel no compartido entre pantallas | Crear única instancia en NavGraph y pasar como parámetro |
+
+---
+
+## Glosario Rápido (Ampliado)
+
+| Término | Significado |
+|---------|-------------|
+| `@Composable` | Función que renderiza UI en Compose |
+| `remember` | Guarda valor entre recomposiciones |
+| `mutableStateOf` | Crea estado observable por Compose |
+| `viewModelScope` | Corrutina ligada al ciclo de vida del ViewModel |
+| `LaunchedEffect` | Ejecuta efecto secundario cuando cambian sus parámetros |
+| `Scaffold` | Layout base con soporte para TopBar, BottomBar, Snackbar |
+| `NavController` | Controla la navegación entre pantallas |
+| `Resource<T>` | Envoltorio: Success, Error, Loading |
+| `FieldValue.increment()` | Operación atómica de Firestore para sumar/restar |
+| `SideEffect` | Ejecuta código después de cada recomposición exitosa |
+| `disposableEffect` | Efecto con cleanup al salir de la composición |
+| `derivedStateOf` | Estado derivado de otros estados (evita recomposiciones innecesarias) |
+| `snapshotFlow` | Convierte estado de Compose en Flow de Kotlin |
+| `callbackFlow` | Crea Flow basado en callbacks (útil para Firestore listeners) |
+| `CompositionLocal` | Provee datos implícitamente a través del árbol de composición |
+
+---
+
 > **Consejo para el examen:** Entiende el flujo MVVM (Screen → ViewModel → Repository → Firebase). Si te piden agregar algo nuevo, sigue la misma estructura de los archivos existentes. Busca el archivo más parecido a lo que necesitas y cópialo como plantilla.
+> 
+> **Para rendimiento:** Recuerda que los cambios más efectivos son: reducir tamaño de QR, pre-computar colores alpha, evitar nested scrolling, y reducir elevaciones/sombras de tarjetas.

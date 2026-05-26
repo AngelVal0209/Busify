@@ -48,7 +48,10 @@ fun PaymentScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceDim
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -70,7 +73,7 @@ fun PaymentScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     DetailRow("Empresa", company)
@@ -98,17 +101,20 @@ fun PaymentScreen(
                 FilterChip(
                     selected = selectedMethod == "Yape",
                     onClick = { selectedMethod = "Yape" },
-                    label = { Text("Yape") }
+                    label = { Text("Yape") },
+                    shape = MaterialTheme.shapes.small
                 )
                 FilterChip(
                     selected = selectedMethod == "Visa",
                     onClick = { selectedMethod = "Visa" },
-                    label = { Text("Visa") }
+                    label = { Text("Visa") },
+                    shape = MaterialTheme.shapes.small
                 )
                 FilterChip(
                     selected = selectedMethod == "Plin",
                     onClick = { selectedMethod = "Plin" },
-                    label = { Text("Plin") }
+                    label = { Text("Plin") },
+                    shape = MaterialTheme.shapes.small
                 )
             }
 
@@ -156,9 +162,9 @@ fun PaymentScreen(
                         isPaying = false
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp),
                 enabled = !isPaying,
-                shape = MaterialTheme.shapes.medium
+                shape = MaterialTheme.shapes.small
             ) {
                 if (isPaying) {
                     CircularProgressIndicator(
@@ -185,7 +191,7 @@ private fun DetailRow(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,

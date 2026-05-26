@@ -40,11 +40,11 @@ class ProfileViewModel(
         }
     }
 
-    fun updateUser(name: String) {
+    fun updateUser(name: String, phone: String = "") {
         val currentUser = _userState.value.data ?: return
         viewModelScope.launch {
             _updateState.value = Resource.Loading()
-            val updatedUser = currentUser.copy(name = name)
+            val updatedUser = currentUser.copy(name = name, phone = phone)
             val result = repository.updateUser(updatedUser)
             _updateState.value = result
             if (result is Resource.Success) {

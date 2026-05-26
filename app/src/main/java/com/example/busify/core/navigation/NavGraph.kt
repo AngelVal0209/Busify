@@ -1,6 +1,5 @@
 package com.example.busify.core.navigation
 
-import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,15 +12,10 @@ import androidx.navigation.compose.*
 import com.example.busify.features.auth.AuthViewModel
 import com.example.busify.features.auth.LoginScreen
 import com.example.busify.features.auth.RegisterScreen
-
 import com.example.busify.features.home.HomeScreen
-import com.example.busify.features.buses.BusesScreen
-import com.example.busify.features.profile.ProfileScreen
+import com.example.busify.features.profile.CuentaScreen
+import com.example.busify.features.profile.MisViajesScreen
 import com.example.busify.features.admin.AdminScreen
-
-// =========================
-// IMPORTS VIAJES
-// =========================
 import com.example.busify.features.viajes.ViajesScreen
 import com.example.busify.features.viajes.SeatSelectionScreen
 import com.example.busify.features.viajes.PaymentScreen
@@ -31,155 +25,84 @@ import com.example.busify.features.viajes.TicketScreen
 fun BusifyNavigation(
     viewModel: AuthViewModel = viewModel()
 ) {
-
     val navController = rememberNavController()
-
     val currentUser = viewModel.currentUserData.value
-
     val startDestination = remember(currentUser) {
-
-        if (currentUser != null)
-            Screen.Home.route
-        else
-            Screen.Login.route
+        if (currentUser != null) Screen.Home.route else Screen.Login.route
     }
 
     NavHost(
-
         navController = navController,
-
         startDestination = startDestination
     ) {
-
-        // =========================
-        // LOGIN
-        // =========================
         composable(Screen.Login.route) {
-
             LoginScreen(
                 viewModel = viewModel,
                 onLoginSuccess = {
-
                     navController.navigate(Screen.Home.route) {
-
-                        popUpTo(Screen.Login.route) {
-                            inclusive = true
-                        }
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-
-                onNavigateToRegister = {
-
-                    navController.navigate(Screen.Register.route)
-                }
+                onNavigateToRegister = { navController.navigate(Screen.Register.route) }
             )
         }
 
-        // =========================
-        // REGISTER
-        // =========================
         composable(Screen.Register.route) {
-
             RegisterScreen(
                 viewModel = viewModel,
-                onNavigateBack = {
-
-                    navController.popBackStack()
-                }
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
-        // =========================
-        // HOME
-        // =========================
         composable(Screen.Home.route) {
-
             MainScaffold(
                 currentRoute = Screen.Home.route,
                 navController = navController,
                 viewModel = viewModel
-            ) {
-
-                HomeScreen(authViewModel = viewModel)
-            }
+            ) { HomeScreen(authViewModel = viewModel, navController = navController) }
         }
 
-        // =========================
-        // BUSES
-        // =========================
-        composable(Screen.Buses.route) {
-
+        composable(Screen.MisViajes.route) {
             MainScaffold(
-                currentRoute = Screen.Buses.route,
+                currentRoute = Screen.MisViajes.route,
                 navController = navController,
                 viewModel = viewModel
-            ) {
-
-                BusesScreen()
-            }
+            ) { MisViajesScreen() }
         }
 
-        // =========================
-        // ADMIN
-        // =========================
         composable(Screen.Admin.route) {
-
             MainScaffold(
                 currentRoute = Screen.Admin.route,
                 navController = navController,
                 viewModel = viewModel
-            ) {
-
-                AdminScreen(authViewModel = viewModel)
-            }
+            ) { AdminScreen(authViewModel = viewModel) }
         }
 
-        // =========================
-        // PROFILE
-        // =========================
-        composable(Screen.Profile.route) {
-
+        composable(Screen.Cuenta.route) {
             MainScaffold(
-                currentRoute = Screen.Profile.route,
+                currentRoute = Screen.Cuenta.route,
                 navController = navController,
                 viewModel = viewModel
             ) {
-
-                ProfileScreen(
-
+                CuentaScreen(
                     onLogout = {
-
                         viewModel.logout()
-
                         navController.navigate(Screen.Login.route) {
-
-                            popUpTo(0) {
-                                inclusive = true
-                            }
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )
             }
         }
 
-        // =========================
-        // VIAJES
-        // =========================
         composable(Screen.Viajes.route) {
-
             MainScaffold(
                 currentRoute = Screen.Viajes.route,
                 navController = navController,
                 viewModel = viewModel
-            ) {
-
-                ViajesScreen(navController)
-            }
+            ) { ViajesScreen(navController) }
         }
 
-        // =========================
-        // SEATS
-        // =========================
         composable(route = Screen.Seats.route) {
             SeatSelectionScreen(
                 navController = navController,
@@ -188,13 +111,11 @@ fun BusifyNavigation(
                 origin = it.arguments?.getString("origin") ?: "",
                 destination = it.arguments?.getString("destination") ?: "",
                 price = it.arguments?.getString("price")?.toDouble() ?: 0.0,
-                departureTime = it.arguments?.getString("departureTime") ?: ""
+                departureTime = it.arguments?.getString("departureTime") ?: "",
+                capacity = it.arguments?.getString("capacity")?.toLongOrNull() ?: 40L
             )
         }
 
-        // =========================
-        // PAYMENT
-        // =========================
         composable(route = Screen.Payment.route) {
             PaymentScreen(
                 navController = navController,
@@ -208,9 +129,6 @@ fun BusifyNavigation(
             )
         }
 
-        // =========================
-        // TICKET
-        // =========================
         composable(route = Screen.Ticket.route) {
             TicketScreen(
                 navController = navController,
@@ -229,125 +147,66 @@ fun BusifyNavigation(
 
 @Composable
 fun MainScaffold(
-
     currentRoute: String,
-
     navController: androidx.navigation.NavHostController,
-
     viewModel: AuthViewModel,
-
     content: @Composable () -> Unit
 ) {
-
     val userData = viewModel.currentUserData.value
-
-    Log.d("NavGraph", "MainScaffold render: userData=$userData, role=${userData?.role}, isAdmin=${userData?.role == 2L}")
-
     val items = remember(userData) {
-
         mutableListOf(
-
             BottomNavItem.Home,
-
-            BottomNavItem.Buses
-
+            BottomNavItem.Viajes,
+            BottomNavItem.MisViajes
         ).apply {
-
-            // =========================
-            // ADMIN
-            // =========================
-            if (userData?.role == 2L) {
-
-                add(BottomNavItem.Admin)
-
-                Log.d("NavGraph", "Admin item added to nav bar")
-            }
-
-            // =========================
-            // VIAJES
-            // =========================
-            add(BottomNavItem.Viajes)
-
-            // =========================
-            // PROFILE
-            // =========================
-            add(BottomNavItem.Profile)
+            if (userData?.role == 2L) add(BottomNavItem.Admin)
+            add(BottomNavItem.Cuenta)
         }
     }
 
     Scaffold(
-
         bottomBar = {
-
             NavigationBar(
-
-                containerColor = MaterialTheme.colorScheme.surface,
-
-                tonalElevation = 8.dp
+                containerColor = MaterialTheme.colorScheme.surfaceDim,
+                tonalElevation = 0.dp
             ) {
-
                 items.forEach { item ->
-
                     NavigationBarItem(
-
-                        icon = {
-
-                            Icon(
-                                item.icon,
-                                contentDescription = item.label
+                        icon = { Icon(item.icon, contentDescription = item.label) },
+                        label = {
+                            Text(
+                                item.label,
+                                style = MaterialTheme.typography.labelSmall
                             )
                         },
-
-                        label = {
-
-                            Text(item.label)
-                        },
-
                         selected = currentRoute == item.route,
-
                         onClick = {
-
                             if (currentRoute != item.route) {
-
                                 navController.navigate(item.route) {
-
-                                    popUpTo(
-                                        navController.graph
-                                            .findStartDestination().id
-                                    ) {
-
+                                    popUpTo(navController.graph.findStartDestination().id) {
                                         saveState = true
                                     }
-
                                     launchSingleTop = true
-
                                     restoreState = true
                                 }
                             }
                         },
-
                         colors = NavigationBarItemDefaults.colors(
-
-                            selectedIconColor =
-                                MaterialTheme.colorScheme.primary,
-
-                            selectedTextColor =
-                                MaterialTheme.colorScheme.primary,
-
-                            indicatorColor =
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     )
                 }
             }
         }
-
     ) { innerPadding ->
-
         Surface(
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            color = MaterialTheme.colorScheme.background
         ) {
-
             content()
         }
     }

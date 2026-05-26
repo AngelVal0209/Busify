@@ -641,3 +641,74 @@ Ambas están dentro del scope de `Firebase BoM 34.13.0` (FCM) y se agrega zxing 
 | `core/fcm/BusifyMessagingService.kt` | 🆕 Nuevo | Servicio FCM |
 | `app/build.gradle.kts` | ✅ Modificado | +zxing, +firebase-messaging |
 | `AndroidManifest.xml` | ✅ Modificado | +FCM service registration |
+
+---
+
+## 15. Optimizaciones de Rendimiento y UI Ligera
+
+Se realizaron mejoras significativas para hacer la interfaz más ligera y rápida:
+
+### 15.1 Reducción de altura de botones
+Se redujo la altura de todos los botones de `56dp` a `48dp` (14% más compactos):
+```kotlin
+// Antes: .height(56.dp)
+// Después: .height(48.dp)
+```
+
+### 15.2 Reducción de bordes redondeados
+Se redujo `RoundedCornerShape` de `16dp` a `12dp` en botones, campos de texto y tarjetas para simplificar el renderizado.
+
+### 15.3 Colores pre-computados
+En `core/theme/Color.kt` se agregaron constantes alpha pre-computadas para evitar crear nuevas instancias de `Color` durante la recomposición:
+```kotlin
+val TextSecondaryAlpha60 = TextSecondary.copy(alpha = 0.6f)
+val TextSecondaryAlpha50 = TextSecondary.copy(alpha = 0.5f)
+val PrimaryAlpha10 = Primary.copy(alpha = 0.1f)
+```
+Esto evita la creación de objetos temporales en cada frame.
+
+### 15.4 QR Code más ligero
+Se redujo la generación de QR de `512x512` a `256x256` píxeles (75% menos píxeles):
+```kotlin
+// Antes: writer.encode(content, BarcodeFormat.QR_CODE, 512, 512)
+// Después: writer.encode(content, BarcodeFormat.QR_CODE, 256, 256)
+```
+
+### 15.5 Eliminación de nested scrolling
+Se reemplazó `LazyColumn` por `Column` en `ProfileScreen` para evitar el anidamiento de scroll con el `verticalScroll` del layout padre.
+
+### 15.6 Reducción de espaciados
+- Espaciados de `24dp` → `16dp` 
+- Espaciados de `48dp` → `32dp`
+- Altura de `StatCard` de `100dp` → `72dp`
+- Padding en tarjetas de `20dp` → `16dp`
+
+### 15.7 Reemplazo de emojis por Material Icons
+En `AdminScreen`, las tabs usaban emojis (`✏️`, `➕`, `📋`, `👥`). Se reemplazaron por iconos vectoriales de Material Design (`Icons.Default.Edit`, `Icons.Default.Add`, etc.).
+
+### 15.8 Reducción de elevaciones
+- Tarjetas: `defaultElevation = 2.dp` → `1.dp`
+- NavigationBar: `tonalElevation = 8.dp` → `4.dp`
+
+### 15.9 Eliminación de logs excesivos
+Se eliminaron los `Log.d()` de producción en `NavGraph.kt` y `AdminScreen.kt` para reducir overhead de logging.
+
+---
+
+## 16. Resumen de Archivos Modificados (Optimización UI)
+
+| Archivo | Cambio |
+|---------|--------|
+| `core/components/Buttons.kt` | Altura 56→48dp, radio 16→12dp |
+| `core/components/TextFields.kt` | Radio 16→12dp |
+| `core/theme/Color.kt` | +Constantes alpha pre-computadas |
+| `core/navigation/NavGraph.kt` | Eliminados logs, simplificado layout, elevación 8→4dp |
+| `features/home/HomeScreen.kt` | Espaciados reducidos, StatCard 100→72dp, colores pre-computados |
+| `features/buses/BusesScreen.kt` | Padding 24→16dp, elevación 2→1dp, colores pre-computados |
+| `features/admin/AdminScreen.kt` | Emojis→Material Icons, espaciados reducidos, eliminados logs |
+| `features/viajes/ViajesScreen.kt` | Elevación 2→1dp, espaciados reducidos, colores pre-computados |
+| `features/viajes/TicketScreen.kt` | QR 512→256px, elevación 4→2dp, altura botón 56→48dp |
+| `features/viajes/PaymentScreen.kt` | Altura botón 56→48dp |
+| `features/profile/ProfileScreen.kt` | QR 512→256px, LazyColumn→Column, scroll vertical unificado |
+| `features/auth/LoginScreen.kt` | Colores pre-computados, espaciado reducido |
+| `features/auth/RegisterScreen.kt` | Colores pre-computados, espaciado reducido |

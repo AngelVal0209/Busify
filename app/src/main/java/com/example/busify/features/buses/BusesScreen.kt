@@ -12,13 +12,10 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.busify.core.util.Resource
-import com.example.busify.data.repository.TicketRepository
 import com.example.busify.domain.model.Route
 import java.text.SimpleDateFormat
 import java.util.*
@@ -45,7 +42,7 @@ fun BusesScreen(
             CenterAlignedTopAppBar(
                 title = { Text("Buses Disponibles", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.surfaceDim
                 )
             )
         }
@@ -84,9 +81,9 @@ fun BusesScreen(
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(horizontal = 24.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                contentPadding = PaddingValues(bottom = 24.dp)
+                                    .padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(bottom = 16.dp)
                             ) {
                                 items(routes) { route ->
                                     BusCard(route)
@@ -112,10 +109,10 @@ fun BusCard(route: Route) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,12 +121,12 @@ fun BusCard(route: Route) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "${route.origin} → ${route.destination}",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = route.company,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -138,18 +135,14 @@ fun BusCard(route: Route) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            HorizontalDivider(modifier = Modifier.alpha(0.1f))
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoItem(Icons.Default.AccessTime, departureStr)
-                InfoItem(Icons.Default.AccessTime, "Llega: ${route.arrivalTime}")
+                InfoItem(Icons.Default.Schedule, "Llega: ${route.arrivalTime}")
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 InfoItem(Icons.Default.People, "Capacidad: ${route.capacity}")
                 InfoItem(Icons.Default.AttachMoney, "S/ ${route.price}")
             }
@@ -165,18 +158,18 @@ fun BusCard(route: Route) {
 @Composable
 fun StatusBadge(status: String) {
     val color = when (status) {
-        "A tiempo" -> Color(0xFF10B981)
-        "Demorado" -> Color(0xFFF59E0B)
+        "A tiempo" -> MaterialTheme.colorScheme.tertiary
+        "Demorado" -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.primary
     }
 
     Surface(
         color = color.copy(alpha = 0.1f),
-        shape = MaterialTheme.shapes.small
+        shape = MaterialTheme.shapes.extraSmall
     ) {
         Text(
             text = status,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             color = color,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold
@@ -190,14 +183,14 @@ fun InfoItem(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

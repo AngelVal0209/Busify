@@ -5,20 +5,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.busify.core.util.Resource
 import com.example.busify.domain.model.Route
 import com.example.busify.features.auth.AuthViewModel
@@ -26,21 +26,35 @@ import com.example.busify.features.buses.BusesViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     authViewModel: AuthViewModel,
-    busesViewModel: BusesViewModel = viewModel()
+    busesViewModel: BusesViewModel = viewModel(),
+    navController: NavController? = null
 ) {
     val userData = authViewModel.currentUserData.value
     val routesState = busesViewModel.routesState.value
-    
+
+    var tripType by remember { mutableStateOf("ida") }
+    var origin by remember { mutableStateOf("") }
+    var destination by remember { mutableStateOf("") }
+    var departureDate by remember { mutableStateOf("") }
+    var returnDate by remember { mutableStateOf("") }
+    var showDeparturePicker by remember { mutableStateOf(false) }
+    var showReturnPicker by remember { mutableStateOf(false) }
+    var departureDateMillis by remember { mutableStateOf(0L) }
+    var returnDateMillis by remember { mutableStateOf(0L) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
+            .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(modifier = Modifier.height(8.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -48,57 +62,150 @@ fun HomeScreen(
         ) {
             Column {
                 Text(
-                    text = "Hola, ${userData?.name ?: "Usuario"}",
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = "Bienvenido, ${userData?.name ?: "Usuario"}",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "¿A dónde vamos hoy?",
+                    text = "¿A dónde vas a viajar?",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            IconButton(
-                onClick = { },
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-            ) {
-                Icon(Icons.Default.Notifications, contentDescription = null)
+            IconButton(onClick = { }) {
+                Icon(Icons.Default.Notifications, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Estado del Sistema",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            val routeCount = if (routesState is Resource.Success) routesState.data?.size ?: 0 else 0
-            StatCard(
-                label = "Rutas Activas",
-                value = routeCount.toString(),
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-            StatCard(
-                label = "Tu Rol",
-                value = when(userData?.role) {
-                    2L -> "Admin"
-                    3L -> "Chofer"
-                    else -> "Usuario"
-                },
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
+        Card(
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Buscar Viaje",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = tripType == "ida",
+                        onClick = { tripType = "ida" },
+                        label = { Text("Solo Ida") },
+                        shape = MaterialTheme.shapes.small
+                    )
+                    FilterChip(
+                        selected = tripType == "idavuelta",
+                        onClick = { tripType = "idavuelta" },
+                        label = { Text("Ida y Vuelta") },
+                        shape = MaterialTheme.shapes.small
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = origin,
+                    onValueChange = { origin = it },
+                    label = { Text("Origen") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.large,
+                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = destination,
+                    onValueChange = { destination = it },
+                    label = { Text("Destino") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.large,
+                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = departureDate,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Fecha de Ida") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    trailingIcon = {
+                        IconButton(onClick = { showDeparturePicker = true }) {
+                            Icon(Icons.Default.CalendarMonth, contentDescription = "Seleccionar fecha")
+                        }
+                    },
+                    enabled = false,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+
+                if (tripType == "idavuelta") {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = returnDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Fecha de Regreso") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        trailingIcon = {
+                            IconButton(onClick = { showReturnPicker = true }) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = "Seleccionar fecha")
+                            }
+                        },
+                        enabled = false,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledBorderColor = MaterialTheme.colorScheme.outline,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        if (origin.isNotBlank() && destination.isNotBlank()) {
+                            busesViewModel.setSearchOrigin(origin)
+                            busesViewModel.setSearchDestination(destination)
+                            navController?.navigate("viajes") {
+                                popUpTo("home") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Icon(Icons.Default.Search, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Buscar Rutas")
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Rutas Disponibles",
@@ -106,11 +213,11 @@ fun HomeScreen(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         when (routesState) {
             is Resource.Loading -> {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
@@ -120,10 +227,10 @@ fun HomeScreen(
                     Text(
                         text = "No hay rutas disponibles creadas.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(routes) { route ->
                             RouteCard(route)
                         }
@@ -135,21 +242,48 @@ fun HomeScreen(
             }
         }
     }
-}
 
-@Composable
-fun StatCard(label: String, value: String, modifier: Modifier = Modifier, containerColor: Color) {
-    Card(
-        modifier = modifier.height(100.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        shape = MaterialTheme.shapes.large
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.Center
+    if (showDeparturePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = departureDateMillis.takeIf { it > 0 })
+        DatePickerDialog(
+            onDismissRequest = { showDeparturePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        departureDateMillis = millis
+                        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale("es", "PE"))
+                        departureDate = sdf.format(Date(millis))
+                    }
+                    showDeparturePicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeparturePicker = false }) { Text("Cancelar") }
+            }
         ) {
-            Text(text = label, style = MaterialTheme.typography.labelMedium)
-            Text(text = value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showReturnPicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = returnDateMillis.takeIf { it > 0 })
+        DatePickerDialog(
+            onDismissRequest = { showReturnPicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        returnDateMillis = millis
+                        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale("es", "PE"))
+                        returnDate = sdf.format(Date(millis))
+                    }
+                    showReturnPicker = false
+                }) { Text("Aceptar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReturnPicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
@@ -164,40 +298,56 @@ fun RouteCard(route: Route) {
     }
 
     Card(
-        modifier = Modifier.width(240.dp).height(150.dp),
-        shape = MaterialTheme.shapes.large
+        modifier = Modifier.width(200.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = "${route.origin} - ${route.destination}",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1
             )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = route.company,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
             )
-            Text(
-                text = "Salida: $departureStr",
-                style = MaterialTheme.typography.bodySmall
-            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.extraSmall,
+                ) {
+                    Box(modifier = Modifier.size(8.dp))
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Salida: $departureStr",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "S/ ${route.price}",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
             Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                shape = CircleShape
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = MaterialTheme.shapes.extraSmall
             ) {
                 Text(
                     text = route.status,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

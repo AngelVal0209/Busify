@@ -60,10 +60,10 @@ class AuthViewModel(
             }
         }
     }
-    fun register(name: String, email: String, password: String) {
+    fun register(name: String, email: String, password: String, phone: String = "") {
         viewModelScope.launch {
             _registerState.value = Resource.Loading()
-            val result = repository.register(name, email, password)
+            val result = repository.register(name, email, password, phone)
             _registerState.value = result
             if (result is Resource.Success) {
                 Log.d("AuthVM", "register success: role=${result.data?.role}")

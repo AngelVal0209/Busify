@@ -13,12 +13,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.busify.core.components.BusifyButton
 import com.example.busify.core.components.BusifyTextField
 import com.example.busify.core.util.Resource
@@ -54,7 +52,9 @@ fun LoginScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
-                .padding(24.dp)
+                .widthIn(max = 480.dp)
+                .wrapContentWidth()
+                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -62,15 +62,14 @@ fun LoginScreen(
 
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(96.dp)
                     .background(MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.large),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "B",
                     style = MaterialTheme.typography.headlineLarge.copy(
-                        color = Color.White,
-                        fontSize = 48.sp
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 )
             }
@@ -86,10 +85,10 @@ fun LoginScreen(
             Text(
                 text = "Tu transporte, simplificado",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             BusifyTextField(
                 value = email,
@@ -150,7 +149,7 @@ fun LoginScreen(
                 Text(
                     text = "¿No tienes una cuenta?",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextButton(onClick = onNavigateToRegister) {
                     Text(

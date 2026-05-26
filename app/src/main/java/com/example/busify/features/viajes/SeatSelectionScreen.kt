@@ -6,14 +6,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -28,7 +26,8 @@ fun SeatSelectionScreen(
     origin: String,
     destination: String,
     price: Double,
-    departureTime: String
+    departureTime: String,
+    capacity: Long = 40L
 ) {
     val ticketRepository = remember { TicketRepository() }
     var selectedSeats by remember { mutableStateOf<Set<Long>>(emptySet()) }
@@ -43,7 +42,7 @@ fun SeatSelectionScreen(
         loadingSeats = false
     }
 
-    val seats = (1L..40L).toList()
+    val seats = (1L..capacity).toList()
     val maxSeats = 5
 
     Scaffold(
@@ -54,7 +53,10 @@ fun SeatSelectionScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceDim
+                )
             )
         }
     ) { padding ->
@@ -72,7 +74,7 @@ fun SeatSelectionScreen(
             Text(
                 text = "$origin → $destination",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "Salida: $departureTime",
@@ -83,35 +85,20 @@ fun SeatSelectionScreen(
 
             Text(
                 text = "Selecciona tus asientos",
-                style = MaterialTheme.typography.headlineSmall
+                style = MaterialTheme.typography.titleMedium
             )
             Text(
                 text = "Máximo $maxSeats asientos por compra",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Surface(
-                    color = Color(0xFFFFCDD2),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.size(16.dp)
-                ) {}
-                Text("Ocupado", style = MaterialTheme.typography.labelSmall)
-                Surface(
-                    color = Color.LightGray,
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.size(16.dp)
-                ) {}
-                Text("Disponible", style = MaterialTheme.typography.labelSmall)
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.size(16.dp)
-                ) {}
-                Text("Seleccionado", style = MaterialTheme.typography.labelSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SeatLegend(color = MaterialTheme.colorScheme.errorContainer, label = "Ocupado")
+                SeatLegend(color = MaterialTheme.colorScheme.surfaceContainerHigh, label = "Disponible")
+                SeatLegend(color = MaterialTheme.colorScheme.primary, label = "Seleccionado")
             }
 
             if (selectedSeats.isNotEmpty()) {
@@ -123,12 +110,12 @@ fun SeatSelectionScreen(
                 )
                 Text(
                     text = "Total: S/ ${"%.2f".format(price * selectedSeats.size)}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (loadingSeats) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -147,14 +134,14 @@ fun SeatSelectionScreen(
                         val canSelect = !isBooked && (isSelected || selectedSeats.size < maxSeats)
                         val bgColor = when {
                             isSelected -> MaterialTheme.colorScheme.primary
-                            isBooked -> Color(0xFFFFCDD2)
-                            else -> Color.LightGray
+                            isBooked -> MaterialTheme.colorScheme.errorContainer
+                            else -> MaterialTheme.colorScheme.surfaceContainerHigh
                         }
 
                         Box(
                             modifier = Modifier
-                                .size(60.dp)
-                                .background(bgColor, shape = RoundedCornerShape(8.dp))
+                                .size(64.dp)
+                                .background(bgColor, shape = MaterialTheme.shapes.small)
                                 .clickable(enabled = canSelect || isSelected) {
                                     selectedSeats = if (isSelected) {
                                         selectedSeats - seat
@@ -166,7 +153,8 @@ fun SeatSelectionScreen(
                         ) {
                             Text(
                                 text = seat.toString(),
-                                color = if (isSelected) Color.White else Color(0xFF333333),
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -174,7 +162,7 @@ fun SeatSelectionScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (!loadingSeats) {
                 val seatsArg = selectedSeats.sorted().joinToString("_")
@@ -184,9 +172,9 @@ fun SeatSelectionScreen(
                             "payment/$routeId/$company/$origin/$destination/$seatsArg/$price/$departureTime"
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     enabled = selectedSeats.isNotEmpty(),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = MaterialTheme.shapes.small,
                     contentPadding = PaddingValues(16.dp)
                 ) {
                     if (selectedSeats.isNotEmpty()) {
@@ -197,5 +185,18 @@ fun SeatSelectionScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SeatLegend(color: androidx.compose.ui.graphics.Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Surface(
+            color = color,
+            shape = MaterialTheme.shapes.extraSmall,
+            modifier = Modifier.size(14.dp)
+        ) {}
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
