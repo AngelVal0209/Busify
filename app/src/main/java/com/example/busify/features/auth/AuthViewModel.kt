@@ -71,7 +71,6 @@ class AuthViewModel(
             _registerState.value = result
             if (result is Resource.Success) {
                 _currentUserData.value = result.data
-                sendEmailVerification()
             }
         }
     }

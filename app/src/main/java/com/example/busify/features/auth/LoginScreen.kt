@@ -38,7 +38,6 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
     var resetEmail by remember { mutableStateOf("") }
-    var showVerifyButton by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -48,14 +47,7 @@ fun LoginScreen(
 
     LaunchedEffect(loginState) {
         when (loginState) {
-            is Resource.Success -> {
-                if (viewModel.isEmailVerified()) {
-                    onLoginSuccess()
-                } else {
-                    showVerifyButton = true
-                    snackbarHostState.showSnackbar("Verifica tu correo antes de continuar")
-                }
-            }
+            is Resource.Success -> onLoginSuccess()
             is Resource.Error -> snackbarHostState.showSnackbar(loginState?.message ?: "Error")
             else -> {}
         }
@@ -190,7 +182,6 @@ fun LoginScreen(
                         if (!Validation.isValidEmail(email)) {
                             scope.launch { snackbarHostState.showSnackbar("Correo inválido") }; return@BusifyButton
                         }
-                        showVerifyButton = false
                         viewModel.login(email, password)
                     } else {
                         scope.launch { snackbarHostState.showSnackbar("Llena todos los campos") }
@@ -198,15 +189,6 @@ fun LoginScreen(
                 },
                 loading = loginState is Resource.Loading
             )
-
-            if (showVerifyButton) {
-                Spacer(modifier = Modifier.height(12.dp))
-                BusifyButton(
-                    text = "Verificar Email",
-                    onClick = { viewModel.sendEmailVerification() },
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
-            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

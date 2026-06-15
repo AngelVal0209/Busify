@@ -9,7 +9,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,24 +36,14 @@ fun RegisterScreen(
     val scope = rememberCoroutineScope()
 
     val registerState by viewModel.registerState
-    val emailVerificationState by viewModel.emailVerificationState
-    var verificationSent by remember { mutableStateOf(false) }
 
     LaunchedEffect(registerState) {
         when (registerState) {
             is Resource.Success -> {
-                verificationSent = true
-                snackbarHostState.showSnackbar("Cuenta creada. Revisa tu correo para verificar.")
+                snackbarHostState.showSnackbar("Cuenta creada correctamente")
+                onNavigateBack()
             }
             is Resource.Error -> snackbarHostState.showSnackbar(registerState?.message ?: "Error")
-            else -> {}
-        }
-    }
-
-    LaunchedEffect(emailVerificationState) {
-        when (emailVerificationState) {
-            is Resource.Success -> { if (verificationSent) onNavigateBack(); viewModel.clearEmailVerificationState() }
-            is Resource.Error -> { snackbarHostState.showSnackbar(emailVerificationState?.message ?: "Error"); viewModel.clearEmailVerificationState() }
             else -> {}
         }
     }
@@ -84,17 +73,8 @@ fun RegisterScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "Crear cuenta",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Únete a Busify y viaja seguro.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
+            Text(text = "Crear cuenta", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(text = "Únete a Busify y viaja seguro.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -107,12 +87,7 @@ fun RegisterScreen(
             BusifyTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = "Confirmar contraseña", leadingIcon = Icons.Default.Lock, visualTransformation = PasswordVisualTransformation())
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-            )
+            Text(text = "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -120,37 +95,16 @@ fun RegisterScreen(
                 text = "Crear Cuenta",
                 onClick = {
                     if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
-                        if (!Validation.isValidName(name)) {
-                            scope.launch { snackbarHostState.showSnackbar("El nombre debe tener al menos 2 caracteres") }; return@BusifyButton
-                        }
-                        if (!Validation.isValidEmail(email)) {
-                            scope.launch { snackbarHostState.showSnackbar("Correo inválido") }; return@BusifyButton
-                        }
+                        if (!Validation.isValidName(name)) { scope.launch { snackbarHostState.showSnackbar("El nombre debe tener al menos 2 caracteres") }; return@BusifyButton }
+                        if (!Validation.isValidEmail(email)) { scope.launch { snackbarHostState.showSnackbar("Correo inválido") }; return@BusifyButton }
                         val passwordValidation = Validation.isValidPassword(password)
-                        if (!passwordValidation.isValid) {
-                            scope.launch { snackbarHostState.showSnackbar(passwordValidation.errorMessage ?: "Contraseña inválida") }; return@BusifyButton
-                        }
-                        if (password != confirmPassword) {
-                            scope.launch { snackbarHostState.showSnackbar("Las contraseñas no coinciden") }; return@BusifyButton
-                        }
+                        if (!passwordValidation.isValid) { scope.launch { snackbarHostState.showSnackbar(passwordValidation.errorMessage ?: "Contraseña inválida") }; return@BusifyButton }
+                        if (password != confirmPassword) { scope.launch { snackbarHostState.showSnackbar("Las contraseñas no coinciden") }; return@BusifyButton }
                         viewModel.register(name, email, password)
-                    } else {
-                        scope.launch { snackbarHostState.showSnackbar("Llena todos los campos") }
-                    }
+                    } else { scope.launch { snackbarHostState.showSnackbar("Llena todos los campos") } }
                 },
                 loading = registerState is Resource.Loading
             )
-
-            if (verificationSent) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.medium) {
-                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Se envió un correo de verificación a $email", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
