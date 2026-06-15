@@ -5,15 +5,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -44,27 +44,17 @@ fun RegisterScreen(
         when (registerState) {
             is Resource.Success -> {
                 verificationSent = true
-                snackbarHostState.showSnackbar("Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión.")
+                snackbarHostState.showSnackbar("Cuenta creada. Revisa tu correo para verificar.")
             }
-            is Resource.Error -> {
-                snackbarHostState.showSnackbar(registerState?.message ?: "Error")
-            }
+            is Resource.Error -> snackbarHostState.showSnackbar(registerState?.message ?: "Error")
             else -> {}
         }
     }
 
     LaunchedEffect(emailVerificationState) {
         when (emailVerificationState) {
-            is Resource.Success -> {
-                if (verificationSent) {
-                    onNavigateBack()
-                }
-                viewModel.clearEmailVerificationState()
-            }
-            is Resource.Error -> {
-                snackbarHostState.showSnackbar(emailVerificationState?.message ?: "Error al enviar verificación")
-                viewModel.clearEmailVerificationState()
-            }
+            is Resource.Success -> { if (verificationSent) onNavigateBack(); viewModel.clearEmailVerificationState() }
+            is Resource.Error -> { snackbarHostState.showSnackbar(emailVerificationState?.message ?: "Error"); viewModel.clearEmailVerificationState() }
             else -> {}
         }
     }
@@ -75,12 +65,10 @@ fun RegisterScreen(
                 title = {},
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = androidx.compose.ui.graphics.Color.Transparent)
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -94,109 +82,74 @@ fun RegisterScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Crea tu cuenta",
+                text = "Crear cuenta",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = "Únete a la comunidad de Busify hoy mismo.",
+                text = "Únete a Busify y viaja seguro.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            BusifyTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = "Nombre completo",
-                leadingIcon = Icons.Default.Person
-            )
-
+            BusifyTextField(value = name, onValueChange = { name = it }, label = "Nombre completo", leadingIcon = Icons.Default.Person)
             Spacer(modifier = Modifier.height(16.dp))
-
-            BusifyTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = "Correo electrónico",
-                leadingIcon = Icons.Default.Email
-            )
-
+            BusifyTextField(value = email, onValueChange = { email = it }, label = "Correo electrónico", leadingIcon = Icons.Default.Email)
             Spacer(modifier = Modifier.height(16.dp))
-
-            BusifyTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = "Contraseña",
-                leadingIcon = Icons.Default.Lock,
-                visualTransformation = PasswordVisualTransformation()
-            )
-
+            BusifyTextField(value = password, onValueChange = { password = it }, label = "Contraseña", leadingIcon = Icons.Default.Lock, visualTransformation = PasswordVisualTransformation())
             Spacer(modifier = Modifier.height(16.dp))
+            BusifyTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = "Confirmar contraseña", leadingIcon = Icons.Default.Lock, visualTransformation = PasswordVisualTransformation())
 
-            BusifyTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = "Confirmar contraseña",
-                leadingIcon = Icons.Default.Lock,
-                visualTransformation = PasswordVisualTransformation()
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            if (registerState is Resource.Loading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            } else {
-                BusifyButton(
-                    text = "Crear Cuenta",
-                    onClick = {
-                        if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
-                            if (!Validation.isValidName(name)) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("El nombre debe tener al menos 2 caracteres")
-                                }
-                                return@BusifyButton
-                            }
-                            if (!Validation.isValidEmail(email)) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Formato de correo electrónico inválido")
-                                }
-                                return@BusifyButton
-                            }
-                            val passwordValidation = Validation.isValidPassword(password)
-                            if (!passwordValidation.isValid) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(passwordValidation.errorMessage ?: "Contraseña inválida")
-                                }
-                                return@BusifyButton
-                            }
-                            if (password != confirmPassword) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Las contraseñas no coinciden")
-                                }
-                                return@BusifyButton
-                            }
-                            viewModel.register(name, email, password)
-                        } else {
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Por favor llena todos los campos")
-                            }
+            BusifyButton(
+                text = "Crear Cuenta",
+                onClick = {
+                    if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
+                        if (!Validation.isValidName(name)) {
+                            scope.launch { snackbarHostState.showSnackbar("El nombre debe tener al menos 2 caracteres") }; return@BusifyButton
                         }
+                        if (!Validation.isValidEmail(email)) {
+                            scope.launch { snackbarHostState.showSnackbar("Correo inválido") }; return@BusifyButton
+                        }
+                        val passwordValidation = Validation.isValidPassword(password)
+                        if (!passwordValidation.isValid) {
+                            scope.launch { snackbarHostState.showSnackbar(passwordValidation.errorMessage ?: "Contraseña inválida") }; return@BusifyButton
+                        }
+                        if (password != confirmPassword) {
+                            scope.launch { snackbarHostState.showSnackbar("Las contraseñas no coinciden") }; return@BusifyButton
+                        }
+                        viewModel.register(name, email, password)
+                    } else {
+                        scope.launch { snackbarHostState.showSnackbar("Llena todos los campos") }
                     }
-                )
-            }
+                },
+                loading = registerState is Resource.Loading
+            )
 
             if (verificationSent) {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Se ha enviado un correo de verificación a $email. Por favor verifica tu cuenta antes de iniciar sesión.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.medium) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Se envió un correo de verificación a $email", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

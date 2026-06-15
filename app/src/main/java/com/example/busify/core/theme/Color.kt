@@ -2,18 +2,55 @@ package com.example.busify.core.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Primary = Color(0xFF6366F1) // Indigo 500
-val PrimaryDark = Color(0xFF4F46E5) // Indigo 600
-val Secondary = Color(0xFF10B981) // Emerald 500
-val Background = Color(0xFFF8FAFC) // Slate 50
-val Surface = Color(0xFFFFFFFF)
-val TextPrimary = Color(0xFF1E293B) // Slate 800
-val TextSecondary = Color(0xFF64748B) // Slate 500
-val Error = Color(0xFFEF4444) // Red 500
+val Primary = Color(0xFF6366F1)
+val PrimaryDark = Color(0xFF4F46E5)
+val Secondary = Color(0xFF10B981)
+val SecondaryDark = Color(0xFF059669)
+val Tertiary = Color(0xFFF59E0B)
+val Error = Color(0xFFEF4444)
+val ErrorDark = Color(0xFFDC2626)
 
-// Dark Mode Colors
-val PrimaryDarkTheme = Color(0xFF818CF8) // Indigo 400
-val BackgroundDark = Color(0xFF0F172A) // Slate 900
-val SurfaceDark = Color(0xFF1E293B) // Slate 800
-val TextPrimaryDark = Color(0xFFF1F5F9) // Slate 100
-val TextSecondaryDark = Color(0xFF94A3B8) // Slate 400
+val Background = Color(0xFFF8FAFC)
+val Surface = Color(0xFFFFFFFF)
+val SurfaceVariant = Color(0xFFF1F5F9)
+val Outline = Color(0xFFCBD5E1)
+val TextPrimary = Color(0xFF0F172A)
+val TextSecondary = Color(0xFF64748B)
+val TextTertiary = Color(0xFF94A3B8)
+
+val PrimaryContainer = Color(0xFFE0E7FF)
+val OnPrimaryContainer = Color(0xFF312E81)
+val SecondaryContainer = Color(0xFFD1FAE5)
+val OnSecondaryContainer = Color(0xFF065F46)
+val TertiaryContainer = Color(0xFFFEF3C7)
+val OnTertiaryContainer = Color(0xFF92400E)
+val ErrorContainer = Color(0xFFFEE2E2)
+val OnErrorContainer = Color(0xFF991B1B)
+
+val SurfaceDark = Color(0xFF0F172A)
+val SurfaceContainerDark = Color(0xFF1E293B)
+val SurfaceVariantDark = Color(0xFF334155)
+val OutlineDark = Color(0xFF475569)
+val TextPrimaryDark = Color(0xFFF1F5F9)
+val TextSecondaryDark = Color(0xFF94A3B8)
+val TextTertiaryDark = Color(0xFF64748B)
+
+val PrimaryDarkTheme = Color(0xFF818CF8)
+val SecondaryDarkTheme = Color(0xFF34D399)
+val BackgroundDark = Color(0xFF0F172A)
+val PrimaryContainerDark = Color(0xFF312E81)
+val SecondaryContainerDark = Color(0xFF065F46)
+val ErrorContainerDark = Color(0xFF7F1D1D)
+
+val GradientStart = Color(0xFF6366F1)
+val GradientEnd = Color(0xFF8B5CF6)
+val GradientSecondaryStart = Color(0xFF10B981)
+val GradientSecondaryEnd = Color(0xFF06B6D4)
+val SurfaceTint = Color(0xFF6366F1).copy(alpha = 0.08f)
+
+val ChipDefault = Color(0xFFF1F5F9)
+val StarColor = Color(0xFFF59E0B)
+val SuccessColor = Color(0xFF10B981)
+val WarningColor = Color(0xFFF59E0B)
+val DangerColor = Color(0xFFEF4444)
+val InfoColor = Color(0xFF3B82F6)

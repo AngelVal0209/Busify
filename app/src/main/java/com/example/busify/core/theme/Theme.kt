@@ -14,26 +14,64 @@ import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
     primary = PrimaryDarkTheme,
-    secondary = Secondary,
+    onPrimary = Color(0xFF1E1B4B),
+    primaryContainer = PrimaryContainerDark,
+    onPrimaryContainer = Color(0xFFC7D2FE),
+    secondary = SecondaryDarkTheme,
+    onSecondary = Color(0xFF052E16),
+    secondaryContainer = SecondaryContainerDark,
+    onSecondaryContainer = Color(0xFFA7F3D0),
+    tertiary = Tertiary,
+    onTertiary = Color(0xFF451A03),
+    tertiaryContainer = Color(0xFF78350F),
+    onTertiaryContainer = Color(0xFFFDE68A),
+    error = Error,
+    onError = Color(0xFF450A0A),
+    errorContainer = ErrorContainerDark,
+    onErrorContainer = Color(0xFFFECACA),
     background = BackgroundDark,
-    surface = SurfaceDark,
-    onPrimary = Color.Black,
-    onSecondary = Color.White,
     onBackground = TextPrimaryDark,
+    surface = SurfaceDark,
     onSurface = TextPrimaryDark,
-    error = Error
+    surfaceVariant = SurfaceVariantDark,
+    onSurfaceVariant = TextSecondaryDark,
+    outline = OutlineDark,
+    outlineVariant = SurfaceContainerDark,
+    surfaceTint = PrimaryDarkTheme,
+    inverseSurface = TextPrimaryDark,
+    inverseOnSurface = SurfaceDark,
+    inversePrimary = Primary
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
-    secondary = Secondary,
-    background = Background,
-    surface = Surface,
     onPrimary = Color.White,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
+    secondary = Secondary,
     onSecondary = Color.White,
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
+    tertiary = Tertiary,
+    onTertiary = Color.White,
+    tertiaryContainer = TertiaryContainer,
+    onTertiaryContainer = OnTertiaryContainer,
+    error = Error,
+    onError = Color.White,
+    errorContainer = ErrorContainer,
+    onErrorContainer = OnErrorContainer,
+    background = Background,
     onBackground = TextPrimary,
+    surface = Surface,
     onSurface = TextPrimary,
-    error = Error
+    surfaceVariant = SurfaceVariant,
+    onSurfaceVariant = TextSecondary,
+    outline = Outline,
+    outlineVariant = SurfaceVariant,
+    surfaceTint = Primary,
+    inverseSurface = TextPrimary,
+    inverseOnSurface = Surface,
+    inversePrimary = PrimaryDarkTheme
 )
 
 @Composable
@@ -53,7 +91,7 @@ fun BusifyTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = BusifyTypography,
         content = content
     )
 }

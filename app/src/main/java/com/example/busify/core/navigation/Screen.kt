@@ -1,15 +1,16 @@
 package com.example.busify.core.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.DirectionsBus
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.ConfirmationNumber
+import androidx.compose.material.icons.outlined.DirectionsBus
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class Screen(val route: String) {
+    object Onboarding : Screen("onboarding")
     object Login : Screen("login")
     object Register : Screen("register")
     object Home : Screen("home")
@@ -24,11 +25,11 @@ sealed class Screen(val route: String) {
     object Ticket : Screen("ticket/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{paymentMethod}/{departureTime}")
 }
 
-sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector) {
-    object Home : BottomNavItem(Screen.Home.route, "Inicio", Icons.Default.Home)
-    object Buses : BottomNavItem(Screen.Buses.route, "Buses", Icons.Default.DirectionsBus)
-    object Admin : BottomNavItem(Screen.Admin.route, "Admin", Icons.Default.AdminPanelSettings)
-    object Profile : BottomNavItem(Screen.Profile.route, "Perfil", Icons.Default.Person)
-    object Viajes : BottomNavItem(Screen.Viajes.route, "Viajes", Icons.Default.LocationOn)
-    object Driver : BottomNavItem(Screen.Driver.route, "Conducir", Icons.Default.Navigation)
+sealed class BottomNavItem(val route: String, val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
+    object Home : BottomNavItem(Screen.Home.route, "Inicio", Icons.Outlined.Home, Icons.Outlined.Home)
+    object Buses : BottomNavItem(Screen.Buses.route, "Buses", Icons.Outlined.DirectionsBus, Icons.Outlined.DirectionsBus)
+    object Admin : BottomNavItem(Screen.Admin.route, "Admin", Icons.Outlined.AdminPanelSettings, Icons.Outlined.AdminPanelSettings)
+    object Profile : BottomNavItem(Screen.Profile.route, "Perfil", Icons.Outlined.Person, Icons.Outlined.Person)
+    object Viajes : BottomNavItem(Screen.Viajes.route, "Viajes", Icons.Outlined.ConfirmationNumber, Icons.Outlined.ConfirmationNumber)
+    object Driver : BottomNavItem(Screen.Driver.route, "Conducir", Icons.Outlined.Navigation, Icons.Outlined.Navigation)
 }

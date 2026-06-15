@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.busify.core.components.EmptyState
+import com.example.busify.core.components.ErrorState
+import com.example.busify.core.components.ShimmerBusCard
 import com.example.busify.core.util.Resource
 import com.example.busify.domain.model.Route
 import com.example.busify.domain.model.Ticket
@@ -34,44 +37,28 @@ fun DriverScreen(
 
     LaunchedEffect(ticketStatusState) {
         when (ticketStatusState) {
-            is Resource.Success -> {
-                snackbarHostState.showSnackbar("Ticket marcado como usado")
-                viewModel.selectedRoute.value?.let { viewModel.selectRoute(it) }
-            }
+            is Resource.Success -> { snackbarHostState.showSnackbar("Ticket marcado como usado"); viewModel.selectedRoute.value?.let { viewModel.selectRoute(it) } }
             is Resource.Error -> snackbarHostState.showSnackbar(ticketStatusState?.message ?: "Error")
             else -> {}
         }
     }
 
     if (showQRScanner) {
-        QRScannerScreen(
-            onBack = { showQRScanner = false },
-            ticketRepository = com.example.busify.data.repository.TicketRepository()
-        )
+        QRScannerScreen(onBack = { showQRScanner = false }, ticketRepository = com.example.busify.data.repository.TicketRepository())
     } else {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(if (selectedRoute != null) "Pasajeros" else "Conductor") },
-                    navigationIcon = {
-                        if (selectedRoute != null) {
-                            IconButton(onClick = { viewModel.clearSelection() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                            }
-                        }
-                    },
+                    title = { Text(if (selectedRoute != null) "Pasajeros" else "Conductor", fontWeight = FontWeight.Bold) },
+                    navigationIcon = { if (selectedRoute != null) { IconButton(onClick = { viewModel.clearSelection() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver") } } },
                     actions = {
-                        IconButton(onClick = { showQRScanner = true }) {
-                            Icon(Icons.Default.QrCode, contentDescription = "Escanear QR")
-                        }
+                        IconButton(onClick = { showQRScanner = true }) { Icon(Icons.Default.QrCode, contentDescription = "Escanear") }
                     }
                 )
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             floatingActionButton = {
-                FloatingActionButton(onClick = { showQRScanner = true }) {
-                    Icon(Icons.Default.QrCode, contentDescription = "Escanear QR")
-                }
+                FloatingActionButton(onClick = { showQRScanner = true }) { Icon(Icons.Default.QrCode, contentDescription = "Escanear QR") }
             }
         ) { padding ->
             Box(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
@@ -87,31 +74,31 @@ fun DriverScreen(
 
 @Composable
 private fun RoutesContent(routes: Resource<List<Route>>, onRouteClick: (Route) -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
         Text("Rutas Asignadas", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(8.dp))
         when (routes) {
-            is Resource.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            is Resource.Error -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(routes.message ?: "Error", color = MaterialTheme.colorScheme.error) }
+            is Resource.Loading -> {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(3) { ShimmerBusCard() }
+                }
+            }
+            is Resource.Error -> ErrorState(message = routes.message ?: "Error", onRetry = { })
             is Resource.Success -> {
                 val list = routes.data ?: emptyList()
                 if (list.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.DirectionsBus, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f))
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("No tienes rutas asignadas", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Usa el bot\u00f3n QR para escanear tickets", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f))
-                        }
-                    }
+                    EmptyState(
+                        icon = Icons.Default.DirectionsBus,
+                        title = "Sin rutas asignadas",
+                        message = "Usa el botón QR para escanear tickets",
+                        actionText = "Escanear QR",
+                        onAction = { }
+                    )
                 } else {
-                    Text("${list.size} ruta(s) asignada(s)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+                    Text("${list.size} ruta(s) asignada(s)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.height(12.dp))
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(list) { route ->
-                            DriverRouteCard(route = route, onClick = { onRouteClick(route) })
-                        }
+                        items(list) { route -> DriverRouteCard(route = route, onClick = { onRouteClick(route) }) }
                     }
                 }
             }
@@ -121,27 +108,35 @@ private fun RoutesContent(routes: Resource<List<Route>>, onRouteClick: (Route) -
 
 @Composable
 private fun DriverRouteCard(route: Route, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(24.dp))
+                }
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("${route.origin} \u2192 ${route.destination}", fontWeight = FontWeight.Bold)
+                Text("${route.origin} → ${route.destination}", fontWeight = FontWeight.Bold)
                 Text(route.company, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-                Text("${route.departureTime} | Cap: ${route.capacity}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+                Text("${route.departureTime} | Cap: ${route.capacity}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f))
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
         }
     }
 }
 
 @Composable
 private fun RoutePassengersContent(route: Route, tickets: Resource<List<Ticket>>?, onMarkUsed: (String) -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("${route.origin} \u2192 ${route.destination}", fontWeight = FontWeight.Bold)
-                Text("Salida: ${route.departureTime} | Empresa: ${route.company}", style = MaterialTheme.typography.bodySmall)
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("${route.origin} → ${route.destination}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                Text("Salida: ${route.departureTime} | ${route.company}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -149,18 +144,14 @@ private fun RoutePassengersContent(route: Route, tickets: Resource<List<Ticket>>
         Spacer(modifier = Modifier.height(8.dp))
         when (tickets) {
             is Resource.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            is Resource.Error -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(tickets.message ?: "Error", color = MaterialTheme.colorScheme.error) }
+            is Resource.Error -> ErrorState(message = tickets.message ?: "Error")
             is Resource.Success -> {
                 val list = tickets.data ?: emptyList()
                 if (list.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("No hay pasajeros registrados", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
-                    }
+                    EmptyState(icon = Icons.Default.Person, title = "Sin pasajeros", message = "No hay pasajeros registrados para esta ruta")
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(list) { ticket ->
-                            TicketPassengerCard(ticket = ticket, onMarkUsed = { onMarkUsed(ticket.id) })
-                        }
+                        items(list) { ticket -> TicketPassengerCard(ticket = ticket, onMarkUsed = { onMarkUsed(ticket.id) }) }
                     }
                 }
             }
@@ -172,27 +163,32 @@ private fun RoutePassengersContent(route: Route, tickets: Resource<List<Ticket>>
 @Composable
 private fun TicketPassengerCard(ticket: Ticket, onMarkUsed: () -> Unit) {
     val isUsed = ticket.status == "usado"
-    Card(modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, colors = CardDefaults.cardColors(containerColor = if (isUsed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = if (isUsed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("${ticket.origin} \u2192 ${ticket.destination}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    Text("${ticket.origin} → ${ticket.destination}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Asientos: ${ticket.seatNumbers.sorted().joinToString(", ")}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
-                Text("Pago: ${ticket.paymentMethod} | Estado: ${ticket.status}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f))
+                Text("Asientos: ${ticket.seatNumbers.sorted().joinToString(", ")}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                Text("Pago: ${ticket.paymentMethod}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
             if (!isUsed) {
-                Button(onClick = onMarkUsed, contentPadding = PaddingValues(12.dp, 4.dp)) {
+                Button(onClick = onMarkUsed, contentPadding = PaddingValues(16.dp, 8.dp), shape = MaterialTheme.shapes.small) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Usado", style = MaterialTheme.typography.labelSmall)
                 }
             } else {
-                Surface(color = Color(0xFF4CAF50).copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
-                    Text("USADO", modifier = Modifier.padding(8.dp, 4.dp), color = Color(0xFF4CAF50), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Surface(color = Color(0xFF10B981).copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp)) {
+                    Text("USADO", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), color = Color(0xFF10B981), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
             }
         }

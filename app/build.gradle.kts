@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.busify"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -47,6 +47,9 @@ dependencies {
 
     // ZXing QR
     implementation("com.google.zxing:core:3.5.3")
+
+    // Timber
+    implementation("com.jakewharton.timber:timber:5.0.1")
 
     // Core AndroidX
     implementation(libs.androidx.core.ktx)
