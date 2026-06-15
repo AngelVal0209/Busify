@@ -45,8 +45,8 @@ View (Composable) ← observa → ViewModel (StateFlow/State) ← llama → Repo
 - **View** (`features/*/`): Composables de Jetpack Compose
 
 ### Core:
-- `core/components/`: Componentes reutilizables (BusifyButton, BusifyTextField)
-- `core/navigation/`: NavGraph y Screen definitions
+- `core/components/`: Componentes reutilizables (BusifyButton, BusifyTextField, RouteCard, EmptyState, ErrorState, ShimmerEffect, LoadingOverlay, NetworkBanner)
+- `core/navigation/`: NavGraph y Screen definitions (login reactivo en tiempo real)
 - `core/theme/`: Colores, tipografía, tema (light/dark)
 - `core/util/`: Resource (Success/Error/Loading), Validation
 
@@ -73,6 +73,9 @@ NavHost(navController, startDestination) {
     composable(Screen.Driver.route) { MainScaffold(...) { DriverScreen() } }
 }
 ```
+
+### Login reactivo
+El estado `currentUser` se lee directamente del ViewModel (`viewModel.currentUserData.value`) sin `remember` estático, para que la navegación reaccione al login/logout en tiempo real.
 
 ### Navegación condicional por rol
 ```kotlin

@@ -24,56 +24,65 @@ app/src/main/java/com/example/busify/
 ├── MainActivity.kt                  ← Splash screen + Firestore offline persistence
 ├── core/
 │   ├── components/
-│   │   ├── Buttons.kt
+│   │   ├── Buttons.kt               ← BusifyButton con loading spinner
+│   │   ├── LoadingOverlay.kt        ← Overlay translúcido con loader
+│   │   ├── NetworkBanner.kt         ← Banner de conectividad
+│   │   ├── RouteCard.kt             ← Tarjeta de ruta compartida (Buses/Viajes)
+│   │   ├── ShimmerEffect.kt        ← Efecto shimmer/skeleton loading
+│   │   ├── States.kt               ← EmptyState, ErrorState, NoResultsState
 │   │   └── TextFields.kt
 │   ├── fcm/
 │   │   └── BusifyMessagingService.kt ← FCM token auto-save to Firestore
 │   ├── navigation/
-│   │   ├── NavGraph.kt              ← Driver route added, logs removed
-│   │   └── Screen.kt                ← Driver screen + SteeringWheel icon
+│   │   ├── NavGraph.kt              ← Login reactivo (no remember estático)
+│   │   └── Screen.kt
 │   ├── theme/
-│   │   ├── Color.kt
-│   │   ├── Theme.kt
-│   │   └── Type.kt
+│   │   ├── Color.kt                 ← Paleta Material 3 completa
+│   │   ├── Theme.kt                 ← Claro/Oscuro
+│   │   └── Type.kt                  ← 13 estilos tipográficos
 │   └── util/
 │       ├── Resource.kt
-│       └── Validation.kt            ← NUEVO: validación de email, password, nombre
+│       └── Validation.kt
 ├── data/
 │   └── repository/
-│       ├── AuthRepository.kt        ← resetPassword, sendEmailVerification, updateEmail, updatePassword, deleteAccount, reauthenticate
-│       ├── PaymentRepository.kt
-│       ├── RouteRepository.kt       ← getPaginatedRoutes
-│       └── TicketRepository.kt      ← getTicketsByRoute, updateTicketStatus
+│       ├── AuthRepository.kt
+│       ├── PaymentMethodRepository.kt ← CRUD tarjetas guardadas
+│       ├── RouteRepository.kt
+│       └── TicketRepository.kt
 ├── domain/
 │   └── model/
 │       ├── Payment.kt
 │       ├── Route.kt
+│       ├── SavedCard.kt             ← type, holderName, lastDigits, ccv, expiryDate, phoneNumber
 │       ├── Seat.kt
 │       ├── Ticket.kt
-│       └── User.kt                  ← photoUrl, fcmToken fields
+│       └── User.kt
 ├── features/
 │   ├── admin/
-│   │   ├── AdminScreen.kt           ← Logs removed
+│   │   ├── AdminScreen.kt
 │   │   └── AdminViewModel.kt
 │   ├── auth/
-│   │   ├── AuthViewModel.kt         ← resetPassword, isEmailVerified, deleteAccount, reauthenticate
-│   │   ├── LoginScreen.kt           ← Password reset dialog, email validation, verify button
-│   │   └── RegisterScreen.kt        ← Password confirm, validation, auto send verification
+│   │   ├── AuthViewModel.kt
+│   │   ├── LoginScreen.kt           ← Modo demo: sin verificación de email
+│   │   └── RegisterScreen.kt        ← Modo demo: no envía verificación
 │   ├── buses/
-│   │   └── BusesScreen.kt
+│   │   ├── BusesScreen.kt           ← Explorar rutas con filtros combinados
+│   │   └── BusesViewModel.kt
 │   ├── driver/
-│   │   ├── DriverScreen.kt          ← NUEVO: ver rutas asignadas, pasajeros, marcar tickets
-│   │   └── DriverViewModel.kt       ← NUEVO
+│   │   ├── DriverScreen.kt
+│   │   └── DriverViewModel.kt
 │   ├── home/
 │   │   └── HomeScreen.kt
+│   ├── onboarding/
+│   │   └── OnboardingScreen.kt      ← 3 slides tutorial al primer inicio
 │   ├── profile/
-│   │   ├── ProfileScreen.kt         ← Foto de perfil, cambiar email/password, eliminar cuenta
-│   │   └── ProfileViewModel.kt      ← Firebase Storage upload, re-authentication
+│   │   ├── ProfileScreen.kt         ← Sin nested LazyColumn, tarjetas guardadas visibles
+│   │   └── ProfileViewModel.kt
 │   └── viajes/
-│       ├── PaymentScreen.kt
+│       ├── PaymentScreen.kt         ← AddCardDialog realista (CCV, expiry, Yape/Plin dinámico)
 │       ├── SeatSelectionScreen.kt
-│       ├── TicketScreen.kt
-│       └── ViajesScreen.kt
+│       ├── TicketScreen.kt          ← Confetti, QR, compartir
+│       └── ViajesScreen.kt          ← Buscar y comprar
 
 functions/
 ├── package.json                     ← Firebase Functions config
@@ -83,6 +92,20 @@ functions/
 ---
 
 ## 2. Modelo de Datos
+
+### SavedCard
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| id | String | ID único |
+| userId | String | UID del usuario propietario |
+| type | String | Yape / Visa / Plin |
+| holderName | String | Titular (Visa) o celular (Yape/Plin) |
+| lastDigits | String | Últimos 4 dígitos |
+| ccv | String | Código de seguridad (Visa) |
+| expiryDate | String | Fecha vencimiento MM/AA (Visa) |
+| phoneNumber | String | Número celular (Yape/Plin) |
+| isDefault | Boolean | Método por defecto |
+| createdAt | Long | Timestamp de creación |
 
 ### User
 | Campo | Tipo | Descripción |
@@ -222,12 +245,13 @@ functions/
 
 ## 6. Flujo de Compra
 
-1. BusesScreen / ViajesScreen → lista de rutas disponibles
-2. SeatSelectionScreen → grid 4 columnas (1-40 asientos), máx 5 por compra
+1. ViajesScreen → buscar con filtros (origen, destino, precio máx) → lista de rutas
+2. Seleccionar Asientos → grid 4 columnas (1-40 asientos), máx 5 por compra
    - Colores: gris=disponible, rojo=ocupado, primary=seleccionado
 3. PaymentScreen → resumen + método de pago (Yape/Visa/Plin)
+   - AddCardDialog dinámico: Visa (titular, 16 dígitos, CCV, vencimiento), Yape/Plin (celular + código)
 4. Guarda ticket en Firestore + decrementa capacidad atómicamente
-5. TicketScreen → confirmación con QR (ZXing)
+5. TicketScreen → confirmación con QR (ZXing) + confetti + compartir
 
 ---
 
@@ -239,12 +263,20 @@ functions/
 - Pull-to-refresh
 
 ### BusesScreen
-- Lista de rutas con Pull-to-Refresh
-- Tarjetas con: origen, destino, empresa, horarios, precio, capacidad, estado
+- Explorar todas las rutas con búsqueda de texto
+- Filtros combinados: precio min/max, tipo bus, ordenar por (precio, hora)
+- Shimmer loading, empty/error states
+- Sin botón de compra (solo información)
 
 ### ViajesScreen
-- Filtros de búsqueda por origen y destino
-- Pull-to-Refresh
+- Búsqueda enfocada en compra: origen, destino, precio máximo
+- Tarjeta de ruta con botón "Seleccionar Asientos"
+- Pull-to-Refresh, empty/error states
+
+### RouteCard (compartido)
+- Componente unificado en `core/components/RouteCard.kt`
+- Muestra: ruta, empresa, precio, horarios, tipo bus, duración, conductor
+- `showBuyButton` opcional para modo compra
 
 ---
 
@@ -269,7 +301,8 @@ functions/
 - **Editar nombre**: Modo inline
 - **Cambiar email**: Diálogo con re-autenticación + envío de verificación
 - **Cambiar contraseña**: Diálogo con re-autenticación
-- **Mis Viajes**: Expandible con historial de tickets + QR
+- **Mis Viajes**: Expandible con historial de tickets + QR (sin nested LazyColumn)
+- **Mis Tarjetas**: Muestra tarjetas guardadas con detalle (Visa: CCV oculto, vencimiento; Yape/Plin: celular)
 - **Eliminar cuenta**: Con re-autenticación y confirmación
 - **Cerrar sesión**
 
