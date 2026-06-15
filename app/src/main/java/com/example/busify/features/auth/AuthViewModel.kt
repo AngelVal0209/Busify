@@ -1,6 +1,5 @@
 package com.example.busify.features.auth
 
-import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -8,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.busify.core.util.Resource
 import com.example.busify.data.repository.AuthRepository
 import com.example.busify.domain.model.User
-import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -25,6 +23,15 @@ class AuthViewModel(
     private val _currentUserData = mutableStateOf<User?>(null)
     val currentUserData: State<User?> = _currentUserData
 
+    private val _resetPasswordState = mutableStateOf<Resource<Unit>?>(null)
+    val resetPasswordState: State<Resource<Unit>?> = _resetPasswordState
+
+    private val _emailVerificationState = mutableStateOf<Resource<Unit>?>(null)
+    val emailVerificationState: State<Resource<Unit>?> = _emailVerificationState
+
+    private val _reauthenticateState = mutableStateOf<Resource<Unit>?>(null)
+    val reauthenticateState: State<Resource<Unit>?> = _reauthenticateState
+
     init {
         val fbUser = repository.getCurrentUser()
         if (fbUser != null) {
@@ -36,38 +43,99 @@ class AuthViewModel(
         viewModelScope.launch {
             val result = repository.getUserDetails(uid)
             if (result is Resource.Success) {
-                Log.d("AuthVM", "getUserDetails success: role=${result.data?.role}")
                 _currentUserData.value = result.data
-            } else {
-                Log.e("AuthVM", "getUserDetails failed: ${result.message}")
             }
             repository.listenToUserDetails(uid).collect { result ->
                 if (result is Resource.Success) {
-                    Log.d("AuthVM", "snapshot listener: role=${result.data?.role}")
                     _currentUserData.value = result.data
                 }
             }
         }
     }
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _loginState.value = Resource.Loading()
             val result = repository.login(email, password)
             _loginState.value = result
             if (result is Resource.Success) {
-                Log.d("AuthVM", "login success: role=${result.data?.role}")
                 _currentUserData.value = result.data
             }
         }
     }
+
     fun register(name: String, email: String, password: String) {
         viewModelScope.launch {
             _registerState.value = Resource.Loading()
             val result = repository.register(name, email, password)
             _registerState.value = result
             if (result is Resource.Success) {
-                Log.d("AuthVM", "register success: role=${result.data?.role}")
                 _currentUserData.value = result.data
+                sendEmailVerification()
+            }
+        }
+    }
+
+    fun isEmailVerified(): Boolean = repository.isEmailVerified()
+
+    fun resetPassword(email: String) {
+        viewModelScope.launch {
+            _resetPasswordState.value = Resource.Loading()
+            _resetPasswordState.value = repository.resetPassword(email)
+        }
+    }
+
+    fun checkEmailVerification() {
+        val isVerified = repository.isEmailVerified()
+        if (isVerified) {
+            _currentUserData.value?.let { user ->
+                loadUserData(user.uid)
+            }
+        }
+    }
+
+    fun sendEmailVerification() {
+        viewModelScope.launch {
+            _emailVerificationState.value = Resource.Loading()
+            _emailVerificationState.value = repository.sendEmailVerification()
+        }
+    }
+
+    fun updatePassword(newPassword: String) {
+        viewModelScope.launch {
+            val result = repository.updatePassword(newPassword)
+            if (result is Resource.Error) {
+                _reauthenticateState.value = Resource.Error(result.message ?: "Error al actualizar contraseña")
+            }
+        }
+    }
+
+    fun updateEmail(newEmail: String) {
+        viewModelScope.launch {
+            val result = repository.updateEmail(newEmail)
+            if (result is Resource.Error) {
+                _reauthenticateState.value = Resource.Error(result.message ?: "Error al actualizar correo")
+            }
+        }
+    }
+
+    fun reauthenticate(email: String, password: String) {
+        viewModelScope.launch {
+            _reauthenticateState.value = Resource.Loading()
+            _reauthenticateState.value = repository.reauthenticate(email, password)
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            val result = repository.deleteAccount()
+            if (result is Resource.Success) {
+                repository.logout()
+                _currentUserData.value = null
+                _loginState.value = null
+                _registerState.value = null
+            } else {
+                _reauthenticateState.value = Resource.Error(result.message ?: "Error al eliminar cuenta")
             }
         }
     }
@@ -77,5 +145,17 @@ class AuthViewModel(
         _currentUserData.value = null
         _loginState.value = null
         _registerState.value = null
+    }
+
+    fun clearResetPasswordState() {
+        _resetPasswordState.value = null
+    }
+
+    fun clearEmailVerificationState() {
+        _emailVerificationState.value = null
+    }
+
+    fun clearReauthenticateState() {
+        _reauthenticateState.value = null
     }
 }

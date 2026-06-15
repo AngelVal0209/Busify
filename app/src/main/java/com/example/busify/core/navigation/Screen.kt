@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -16,11 +17,10 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Admin : Screen("admin")
     object Viajes : Screen("viajes")
+    object Driver : Screen("driver")
 
     object Seats : Screen("seats/{routeId}/{company}/{origin}/{destination}/{price}/{departureTime}")
-
     object Payment : Screen("payment/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{departureTime}")
-
     object Ticket : Screen("ticket/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{paymentMethod}/{departureTime}")
 }
 
@@ -30,4 +30,5 @@ sealed class BottomNavItem(val route: String, val label: String, val icon: Image
     object Admin : BottomNavItem(Screen.Admin.route, "Admin", Icons.Default.AdminPanelSettings)
     object Profile : BottomNavItem(Screen.Profile.route, "Perfil", Icons.Default.Person)
     object Viajes : BottomNavItem(Screen.Viajes.route, "Viajes", Icons.Default.LocationOn)
+    object Driver : BottomNavItem(Screen.Driver.route, "Conducir", Icons.Default.Navigation)
 }

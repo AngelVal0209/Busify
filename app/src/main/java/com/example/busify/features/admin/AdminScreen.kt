@@ -1,6 +1,5 @@
 package com.example.busify.features.admin
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -118,18 +117,11 @@ fun AdminScreen(
             )
 
             val user = authViewModel?.currentUserData?.value
-            Log.d("AdminScreen", "authViewModel=${authViewModel}, user=$user, role=${user?.role}")
             if (user != null) {
                 Text(
-                    text = "Tu rol: ${user.role} (${if (user.role == 1L) "Usuario" else if (user.role == 2L) "Admin" else if (user.role == 3L) "Conductor" else "Desconocido"})",
+                    text = "Tu rol: ${if (user.role == 1L) "Usuario" else if (user.role == 2L) "Admin" else if (user.role == 3L) "Conductor" else "Desconocido"}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (user.role == 2L) Color(0xFF1A6B52) else Color(0xFFB91C1C)
-                )
-            } else {
-                Text(
-                    text = "role: no cargado",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFFB91C1C)
+                    color = if (user.role == 2L) Color(0xFF1A6B52) else Color(0xFF6B7280)
                 )
             }
 

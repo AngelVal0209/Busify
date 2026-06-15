@@ -9,18 +9,24 @@
 2. [Navegación entre Pantallas](#2-navegación-entre-pantallas)
 3. [Agregar una Nueva Pantalla/Vista](#3-agregar-una-nueva-pantallavista)
 4. [Firebase: Firestore y Autenticación](#4-firebase-firestore-y-autenticación)
-5. [Mantener Sesión Iniciada (No cerrar al salir)](#5-mantener-sesión-iniciada-no-cerrar-al-salir)
+5. [Mantener Sesión Iniciada](#5-mantener-sesión-iniciada)
 6. [Cambiar Colores y Tema](#6-cambiar-colores-y-tema)
 7. [Agregar Nuevos Campos a un Modelo](#7-agregar-nuevos-campos-a-un-modelo)
-8. [CRUD Completo: Crear, Leer, Actualizar, Eliminar](#8-crud-completo-crear-leer-actualizar-eliminar)
+8. [CRUD Completo](#8-crud-completo)
 9. [State Management en Compose](#9-state-management-en-compose)
 10. [Navegación con Parámetros](#10-navegación-con-parámetros)
 11. [Snackbar vs Toast](#11-snackbar-vs-toast)
 12. [Pull-to-Refresh](#12-pull-to-refresh)
-13. [ExposedDropdownMenu (Dropdowns)](#13-exposeddropdownmenu-dropdowns)
+13. [ExposedDropdownMenu](#13-exposeddropdownmenu)
 14. [DatePicker y TimePicker](#14-datepicker-y-timepicker)
 15. [Código QR](#15-código-qr)
 16. [Notificaciones Push FCM](#16-notificaciones-push-fcm)
+17. [Validación de Formularios](#17-validación-de-formularios)
+18. [Subida de Fotos (Firebase Storage)](#18-subida-de-fotos-firebase-storage)
+19. [Pantalla de Conductor](#19-pantalla-de-conductor)
+20. [Firebase Cloud Functions](#20-firebase-cloud-functions)
+21. [Roles y Navegación Condicional](#21-roles-y-navegación-condicional)
+22. [Offline Persistence](#22-offline-persistence)
 
 ---
 
@@ -29,100 +35,50 @@
 Busify usa **Arquitectura MVVM** (Model-View-ViewModel) con **Jetpack Compose** para UI y **Firebase** como backend.
 
 ```
-Capa       │ Componentes                     │ Rol
-───────────┼─────────────────────────────────┼────────────────────────────
-View       │ *Screen.kt (Composables)        │ Interfaz de usuario
-ViewModel  │ *ViewModel.kt                   │ Estado y lógica de negocio
-Model      │ domain/model/*.kt               │ Datos (Route, Ticket, etc.)
-Repository │ data/repository/*.kt            │ Comunicación con Firebase
+View (Composable) ← observa → ViewModel (StateFlow/State) ← llama → Repository ← Firebase
 ```
 
-### Flujo típico:
+### Capas:
+- **Model** (`domain/model/`): Data classes (User, Route, Ticket, Payment)
+- **Repository** (`data/repository/`): Lógica de acceso a Firebase
+- **ViewModel** (`features/*/`): Estado de la UI + lógica de negocio
+- **View** (`features/*/`): Composables de Jetpack Compose
 
-```
-Usuario toca botón
-  → Screen llama a ViewModel.metodo()
-    → ViewModel lanza corrutina
-      → Repository llama a Firebase
-        → Firestore devuelve datos
-      → ViewModel actualiza State
-    → Compose re-renderiza la UI automáticamente
-```
-
-### Ejemplo concreto (crear ruta):
-
-```
-AdminScreen: usuario llena formulario y toca "Crear Ruta"
-  → AdminScreen llama a viewModel.submitRoute()
-    → AdminViewModel.submitRoute():
-      → Valida campos (validateAll())
-      → Crea objeto Route
-      → repository.createRoute(route)
-        → RouteRepository.createRoute():
-          → firestore.collection("routes").document().set(route)
-      → Actualiza _createRouteState
-  → AdminScreen observa createRouteState con LaunchedEffect
-    → Muestra Snackbar de éxito/error
-    → Limpia formulario
-```
+### Core:
+- `core/components/`: Componentes reutilizables (BusifyButton, BusifyTextField)
+- `core/navigation/`: NavGraph y Screen definitions
+- `core/theme/`: Colores, tipografía, tema (light/dark)
+- `core/util/`: Resource (Success/Error/Loading), Validation
 
 ---
 
 ## 2. Navegación entre Pantallas
 
-### Archivos clave:
-- `core/navigation/Screen.kt` → Define las rutas (URLs de navegación)
-- `core/navigation/NavGraph.kt` → Conecta rutas con composables
-
-### Sistema de navegación:
-
-**Screen.kt** define rutas con parámetros:
+### Screen.kt
+Define todas las rutas usando `sealed class Screen`:
 ```kotlin
 sealed class Screen(val route: String) {
-    object Home : Screen("home")
-    object Buses : Screen("buses")
-    object Admin : Screen("admin")
-    
-    // Rutas con parámetros:
+    object Login : Screen("login")
+    object Driver : Screen("driver")
     object Seats : Screen("seats/{routeId}/{company}/{origin}/{destination}/{price}/{departureTime}")
-    object Payment : Screen("payment/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{departureTime}")
+    // ...
 }
 ```
 
-**NavGraph.kt** conecta rutas a composables:
+### NavGraph.kt
+Usa `NavHost` con `composable()` para cada ruta:
 ```kotlin
-composable(route = Screen.Seats.route) {
-    SeatSelectionScreen(
-        navController = navController,
-        routeId = it.arguments?.getString("routeId") ?: "",
-        company = it.arguments?.getString("company") ?: "",
-        // ...
-    )
+NavHost(navController, startDestination) {
+    composable(Screen.Login.route) { LoginScreen(...) }
+    composable(Screen.Driver.route) { MainScaffold(...) { DriverScreen() } }
 }
 ```
 
-**Navegar a una pantalla:**
+### Navegación condicional por rol
 ```kotlin
-navController.navigate("seats/abc123/CruzDelSur/Lima/Arequipa/70.0/14:30")
-```
-
-**Navegar y limpiar backstack:**
-```kotlin
-navController.navigate("home") {
-    popUpTo("login") { inclusive = true }  // Elimina login del stack
-    launchSingleTop = true                  // No duplica pantallas
-}
-```
-
-### Bottom Navigation:
-
-En `MainScaffold` (NavGraph.kt), se construye la barra inferior:
-```kotlin
-val items = mutableListOf(
-    BottomNavItem.Home,
-    BottomNavItem.Buses
-).apply {
-    if (userData?.role == 2) add(BottomNavItem.Admin)  // Solo admins
+mutableListOf(BottomNavItem.Home, BottomNavItem.Buses).apply {
+    if (userData?.role == 2L) add(BottomNavItem.Admin)
+    if (userData?.role == 3L) add(BottomNavItem.Driver)
     add(BottomNavItem.Viajes)
     add(BottomNavItem.Profile)
 }
@@ -132,810 +88,353 @@ val items = mutableListOf(
 
 ## 3. Agregar una Nueva Pantalla/Vista
 
-### Paso a paso:
-
-**1. Crear el Screen (ruta)** en `core/navigation/Screen.kt`:
-```kotlin
-object NuevaPantalla : Screen("nueva-pantalla")
-// Con parámetros:
-object NuevaPantalla : Screen("nueva-pantalla/{param1}/{param2}")
-```
-
-**2. Crear el archivo de la pantalla** en `features/mimodulo/MiPantalla.kt`:
-```kotlin
-@Composable
-fun MiPantalla(
-    navController: NavController,
-    param1: String,
-    viewModel: MiViewModel = viewModel()
-) {
-    // UI aquí
-}
-```
-
-**3. (Opcional) Crear ViewModel** en `features/mimodulo/MiViewModel.kt`:
-```kotlin
-class MiViewModel : ViewModel() {
-    private val _state = mutableStateOf(...)
-    val state: State<...> = _state
-    
-    fun hacerAlgo() {
-        viewModelScope.launch { ... }
-    }
-}
-```
-
-**4. Registrar en NavGraph.kt**:
-```kotlin
-// En el NavHost:
-composable(route = Screen.NuevaPantalla.route) {
-    MiPantalla(
-        navController = navController,
-        param1 = it.arguments?.getString("param1") ?: ""
-    )
-}
-```
-
-**5. Navegar a la nueva pantalla**:
-```kotlin
-navController.navigate("nueva-pantalla/valor1/valor2")
-```
-
-### Ejemplo: Agregar pantalla "Acerca de"
-
-```kotlin
-// 1. Screen.kt
-object About : Screen("about")
-
-// 2. features/about/AboutScreen.kt
-@Composable
-fun AboutScreen(navController: NavController) {
-    Scaffold(topBar = {
-        TopAppBar(title = { Text("Acerca de") },
-            navigationIcon = {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
-                }
-            })
-    }) { padding ->
-        Column(Modifier.padding(padding).padding(24.dp)) {
-            Text("Busify v1.0", style = MaterialTheme.typography.headlineMedium)
-            Text("App de transporte interprovincial")
-        }
-    }
-}
-
-// 3. NavGraph.kt
-composable(Screen.About.route) {
-    AboutScreen(navController)
-}
-
-// 4. Navegar desde cualquier lado:
-navController.navigate("about")
-```
+1. Crear `Screen.objeto` en `Screen.kt`
+2. Crear el Composable en `features/mi-pantalla/`
+3. Agregar `composable(Screen.MiPantalla.route) { ... }` en `NavGraph.kt`
+4. Si va en bottom nav: agregar `BottomNavItem` y aplicar filtro por rol
 
 ---
 
 ## 4. Firebase: Firestore y Autenticación
 
-### Inicialización
-
-Firebase se inicializa automáticamente con `google-services.json`. No se necesita código.
-
-### Leer de Firestore (RouteRepository.kt):
-
+### Autenticación
 ```kotlin
-suspend fun getRoutes(): Resource<List<Route>> {
-    val snapshot = firestore.collection("routes").get().await()
-    val routes = snapshot.toObjects(Route::class.java)
-    return Resource.Success(routes)
-}
-```
-
-### Escribir en Firestore:
-
-```kotlin
-suspend fun createRoute(route: Route): Resource<String> {
-    val documentRef = firestore.collection("routes").document()
-    val routeWithId = route.copy(id = documentRef.id)
-    documentRef.set(routeWithId).await()
-    return Resource.Success(documentRef.id)
-}
-```
-
-### Actualizar un campo específico (sin sobrescribir todo):
-
-```kotlin
-firestore.collection("routes").document(routeId)
-    .update("capacity", FieldValue.increment(-count.toLong()))
-    .await()
-```
-
-### Eliminar documento:
-
-```kotlin
-firestore.collection("routes").document(routeId).delete().await()
-```
-
-### Autenticación (AuthRepository.kt):
-
-```kotlin
-// Registrar usuario
-auth.createUserWithEmailAndPassword(email, password).await()
-
-// Iniciar sesión
+// Login
 auth.signInWithEmailAndPassword(email, password).await()
+// Registro
+auth.createUserWithEmailAndPassword(email, password).await()
+// Reset password
+auth.sendPasswordResetEmail(email).await()
+// Verificación
+auth.currentUser?.sendEmailVerification()?.await()
+// Re-autenticación
+val credential = EmailAuthProvider.getCredential(email, password)
+auth.currentUser?.reauthenticate(credential)?.await()
+```
 
-// Cerrar sesión
-auth.signOut()
+### Firestore
+```kotlin
+// Guardar
+firestore.collection("users").document(uid).set(user).await()
+// Leer
+firestore.collection("routes").get().await()
+// Actualizar campo
+firestore.collection("routes").document(id).update("status", "A tiempo").await()
+// Eliminar
+firestore.collection("routes").document(id).delete().await()
+// Operación atómica
+FieldValue.increment(-count.toLong())
+```
 
-// Obtener usuario actual
-auth.currentUser
+### Snapshot Listener (tiempo real)
+```kotlin
+firestore.collection("users").document(uid)
+    .addSnapshotListener { snapshot, error -> ... }
 ```
 
 ---
 
-## 5. Mantener Sesión Iniciada (No cerrar al salir)
+## 5. Mantener Sesión Iniciada
 
-### ¿Cómo funciona actualmente?
-
-En `NavGraph.kt`, el `startDestination` se calcula así:
-
+Firebase Auth maneja la persistencia automáticamente. En `AuthViewModel.init()`:
 ```kotlin
-val startDestination = remember(currentUser) {
-    if (currentUser != null) Screen.Home.route
-    else Screen.Login.route
-}
+val fbUser = repository.getCurrentUser() // No nulo si hay sesión activa
+if (fbUser != null) loadUserData(fbUser.uid)
 ```
 
-Firebase Auth **ya mantiene la sesión por defecto**. Cuando cierras la app y la vuelves a abrir, `FirebaseAuth.getInstance().currentUser` sigue siendo el mismo usuario. No es necesario iniciar sesión de nuevo.
-
-### ¿Por qué NO se cierra la sesión?
-
-- Firebase Auth guarda las credenciales en el disco del dispositivo
-- No hay un `signOut()` automático al cerrar la app
-- Solo se cierra sesión si el usuario toca "Cerrar Sesión"
-
-### Si quisieras cerrar sesión al salir de la app:
-
+El `startDestination` del NavHost depende de `currentUser`:
 ```kotlin
-// En AuthViewModel:
-fun logout() {
-    auth.signOut()  // Firebase borra las credenciales
-    // La próxima vez que abra la app, pedirá login
-}
+val startDestination = if (currentUser != null) Screen.Home.route else Screen.Login.route
 ```
-
-### Si quisieras que la sesión se cierre al minimizar la app:
-
-```kotlin
-// En MainActivity.kt:
-override fun onStop() {
-    super.onStop()
-    // No hacer signOut() aquí para mantener sesión
-}
-```
-
-### Para manejo avanzado (recordar usuario aunque no haya internet):
-
-Firebase Auth ya hace caching automático. El `currentUser` persiste incluso offline.
 
 ---
 
 ## 6. Cambiar Colores y Tema
 
-### Archivo principal: `core/theme/Color.kt`
-
+### Color.kt
 ```kotlin
-// Colores principales
-val md_theme_light_primary = Color(0xFF1A6B52)       // ← Cambia este
-val md_theme_light_onPrimary = Color(0xFFFFFFFF)
-val md_theme_light_primaryContainer = Color(0xFFA5F2D5)
-// ... más colores
+val Primary = Color(0xFF6366F1)    // Indigo 500
+val Secondary = Color(0xFF10B981)  // Emerald 500
+val Background = Color(0xFFF8FAFC) // Slate 50
 ```
 
-### Tema claro y oscuro: `core/theme/Theme.kt`
-
-```kotlin
-@Composable
-fun BusifyTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
-    val colorScheme = if (darkTheme) darkColorScheme(...) 
-                      else lightColorScheme(...)
-    
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
-}
-```
-
-### Para cambiar colores:
-
-1. Abre `core/theme/Color.kt`
-2. Cambia los valores hexadecimales:
-   - `0xFF1A6B52` → formato `0xAARRGGBB` (Alpha, Rojo, Verde, Azul)
-   - Ej: `0xFFE91E63` es rosa, `0xFF2196F3` es azul
-3. Los cambios se reflejan en TODA la app automáticamente
-
-### Para cambiar el color de un elemento específico:
-
-```kotlin
-Button(
-    onClick = { },
-    colors = ButtonDefaults.buttonColors(
-        containerColor = Color(0xFFFF5722),     // Naranja
-        contentColor = Color.White
-    )
-)
-```
-
-### Colores predefinidos en Compose:
-
-| Color | Código |
-|-------|--------|
-| Rojo | `Color(0xFFFF0000)` o `Color.Red` |
-| Verde | `Color(0xFF4CAF50)` |
-| Azul | `Color(0xFF2196F3)` |
-| Blanco | `Color.White` |
-| Negro | `Color.Black` |
-| Gris | `Color.Gray` |
+### Theme.kt
+Dos esquemas: `lightColorScheme` y `darkColorScheme`. Se seleccionan según `isSystemInDarkTheme()`.
 
 ---
 
 ## 7. Agregar Nuevos Campos a un Modelo
 
-### Ejemplo: Agregar "descuento" a Route
-
-**1. Modificar el modelo** (`domain/model/Route.kt`):
-```kotlin
-data class Route(
-    val id: String = "",
-    val origin: String = "",
-    // ... campos existentes
-    val discount: Double = 0.0,  // ← NUEVO: descuento en porcentaje (0-100)
-)
-```
-
-**2. Actualizar el formulario** (`features/admin/AdminScreen.kt`):
-```kotlin
-// Agregar estado
-val formState = viewModel.formState.value
-
-// En el formulario, agregar el campo:
-OutlinedTextField(
-    value = formState.discount,
-    onValueChange = { if (it.isNotEmpty() && it.all { c -> c.isDigit() || c == '.' }) 
-        onFieldChange("discount", it) },
-    label = { Text("Descuento (%)") },
-    modifier = Modifier.fillMaxWidth(),
-    shape = MaterialTheme.shapes.medium,
-    leadingIcon = { Icon(Icons.Default.Sale, contentDescription = null) }
-)
-```
-
-**3. Actualizar el AdminViewModel**:
-```kotlin
-// En AdminFormState:
-data class AdminFormState(
-    // ... campos existentes
-    val discount: String = "0"
-)
-
-// En AdminViewModel.updateField():
-"discount" -> _formState.value = _formState.value.copy(discount = value)
-
-// En submitRoute() agregar al objeto Route:
-discount = form.discount.toDoubleOrNull() ?: 0.0
-```
-
-**4. Mostrar en pantallas** (`features/buses/BusesScreen.kt`):
-```kotlin
-// En BusCard:
-if (route.discount > 0) {
-    InfoItem(Icons.Default.Sale, "Descuento: ${route.discount}%")
-}
-```
+1. Agregar campo a la data class (ej: `val phone: String = ""`)
+2. Firestore lo guarda automáticamente (NoSQL schema-less)
+3. Usar `copy()` para actualizar: `user.copy(phone = "999888777")`
 
 ---
 
-## 8. CRUD Completo: Crear, Leer, Actualizar, Eliminar
-
-### Crear (Create):
+## 8. CRUD Completo
 
 ```kotlin
-// RouteRepository
-suspend fun createRoute(route: Route): Resource<String> {
-    val docRef = firestore.collection("routes").document()
-    val routeWithId = route.copy(id = docRef.id)
-    docRef.set(routeWithId).await()
-    return Resource.Success(docRef.id)
-}
-```
+// CREATE
+val docRef = firestore.collection("routes").document()
+val routeWithId = route.copy(id = docRef.id)
+docRef.set(routeWithId).await()
 
-### Leer (Read):
+// READ
+val snapshot = firestore.collection("routes").get().await()
+val routes = snapshot.toObjects(Route::class.java)
 
-```kotlin
-// RouteRepository
-suspend fun getRoutes(): Resource<List<Route>> {
-    val snapshot = firestore.collection("routes").get().await()
-    val routes = snapshot.toObjects(Route::class.java)
-    return Resource.Success(routes)
-}
+// UPDATE
+firestore.collection("routes").document(route.id).set(route).await()
+// o update parcial:
+firestore.collection("routes").document(id).update("status", "Nuevo").await()
 
-// Con filtro:
-firestore.collection("routes")
-    .whereEqualTo("status", "A tiempo")
-    .get().await()
-```
-
-### Actualizar (Update):
-
-```kotlin
-// RouteRepository - Sobrescribe TODO el documento:
-suspend fun updateRoute(route: Route): Resource<Boolean> {
-    firestore.collection("routes").document(route.id).set(route).await()
-    return Resource.Success(true)
-}
-
-// O actualizar solo un campo:
-firestore.collection("routes").document(routeId)
-    .update("price", 85.0).await()
-```
-
-### Eliminar (Delete):
-
-```kotlin
-// RouteRepository
-suspend fun deleteRoute(routeId: String): Resource<Boolean> {
-    firestore.collection("routes").document(routeId).delete().await()
-    return Resource.Success(true)
-}
+// DELETE
+firestore.collection("routes").document(routeId).delete().await()
 ```
 
 ---
 
 ## 9. State Management en Compose
 
-### Tipos de estado:
-
+### ViewModel
 ```kotlin
-// Estado que COMPOSE observa para re-renderizar:
-val textState = remember { mutableStateOf("") }          // Simple
-var text by remember { mutableStateOf("") }              // Con delegado
-
-// Estado en ViewModel (sobrevive rotaciones):
-private val _data = mutableStateOf<List<Route>>(emptyList())
-val data: State<List<Route>> = _data
+private val _state = mutableStateOf<Resource<List<Route>>>(Resource.Loading())
+val state: State<Resource<List<Route>>> = _state
 ```
 
-### Cómo actualizar la UI automáticamente:
-
+### Resource sealed class
 ```kotlin
-// En ViewModel:
-class MiViewModel : ViewModel() {
-    private val _mensaje = mutableStateOf("Hola")
-    val mensaje: State<String> = _mensaje
-    
-    fun cambiarMensaje() {
-        _mensaje.value = "Nuevo mensaje"  // ← Esto actualiza la UI automáticamente
-    }
-}
-
-// En Screen:
-@Composable
-fun MiScreen(viewModel: MiViewModel = viewModel()) {
-    Text(viewModel.mensaje.value)  // ← Se re-renderiza cuando cambia
+sealed class Resource<T> {
+    class Success<T>(data: T) : Resource<T>(data)
+    class Error<T>(message: String, data: T? = null) : Resource<T>(data, message)
+    class Loading<T>(data: T? = null) : Resource<T>(data)
 }
 ```
 
-### LaunchedEffect (ejecutar código cuando cambia un estado):
-
+### En el Composable
 ```kotlin
-LaunchedEffect(createRouteState) {
-    when (createRouteState) {
-        is Resource.Success -> {
-            snackbarHostState.showSnackbar("Éxito")
-            viewModel.resetForm()
-        }
-        is Resource.Error -> {
-            snackbarHostState.showSnackbar(createRouteState.message ?: "Error")
-        }
-        else -> {}
-    }
+when (val s = viewModel.state) {
+    is Resource.Loading -> CircularProgressIndicator()
+    is Resource.Success -> MostrarDatos(s.data!!)
+    is Resource.Error -> Text("Error: ${s.message}")
 }
-```
-
-### remember vs mutableStateOf:
-
-```kotlin
-// remember: solo sobrevive recomposiciones, NO rotaciones
-val texto = remember { mutableStateOf("") }
-
-// ViewModel: sobrevive rotaciones y cambios de configuración
-// (usar para datos que vienen de Firebase)
 ```
 
 ---
 
 ## 10. Navegación con Parámetros
 
-### Definir ruta con parámetros:
-
 ```kotlin
-// Screen.kt
-object Detalle : Screen("detalle/{rutaId}/{nombre}")
-```
+// Definición
+object Seats : Screen("seats/{routeId}/{company}/{origin}/{destination}/{price}/{departureTime}")
 
-### Extraer parámetros:
+// Navegar
+navController.navigate("seats/$routeId/$company/$origin/$destination/$price/$departureTime")
 
-```kotlin
-// NavGraph.kt
-composable(route = Screen.Detalle.route) { backStackEntry ->
-    val rutaId = backStackEntry.arguments?.getString("rutaId") ?: ""
-    val nombre = backStackEntry.arguments?.getString("nombre") ?: ""
-    DetalleScreen(rutaId = rutaId, nombre = nombre)
+// Recibir
+composable(route = Screen.Seats.route) {
+    val routeId = it.arguments?.getString("routeId") ?: ""
+    SeatSelectionScreen(routeId = routeId, ...)
 }
-```
-
-### Navegar con parámetros:
-
-```kotlin
-navController.navigate("detalle/abc123/MiRuta")
-```
-
-### Parámetros opcionales:
-
-```kotlin
-// Screen.kt
-object Detalle : Screen("detalle?rutaId={rutaId}&nombre={nombre}") {
-    fun createRoute(rutaId: String, nombre: String = "Default"): String {
-        return "detalle?rutaId=$rutaId&nombre=$nombre"
-    }
-}
-
-// Uso:
-navController.navigate(Screen.Detalle.createRoute("abc123"))
 ```
 
 ---
 
 ## 11. Snackbar vs Toast
 
-### Antes (Toast - NO USAR):
-```kotlin
-Toast.makeText(context, "Mensaje", Toast.LENGTH_SHORT).show()
-```
+Todos los mensajes usan `SnackbarHost` (Material3):
 
-### Ahora (Snackbar - USAR):
 ```kotlin
-// 1. Declarar estado
 val snackbarHostState = remember { SnackbarHostState() }
 val scope = rememberCoroutineScope()
 
-// 2. Agregar al Scaffold
-Scaffold(
-    snackbarHost = { SnackbarHost(snackbarHostState) }
-) { ... }
+Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { ... }
 
-// 3. Mostrar mensaje
-scope.launch {
-    snackbarHostState.showSnackbar("Mensaje")
-}
-
-// También desde LaunchedEffect (no necesita scope):
-LaunchedEffect(estado) {
-    if (estado is Resource.Success) {
-        snackbarHostState.showSnackbar("Operación exitosa")
-    }
-}
+// Mostrar mensaje
+scope.launch { snackbarHostState.showSnackbar("Mensaje") }
 ```
+
+No se usa `Toast` en ninguna parte.
 
 ---
 
 ## 12. Pull-to-Refresh
 
-### Implementación:
-
 ```kotlin
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun MiPantalla() {
-    val pullToRefreshState = rememberPullToRefreshState()
-    var isRefreshing by remember { mutableStateOf(false) }
-    
-    LaunchedEffect(isRefreshing) {
-        if (isRefreshing) {
-            viewModel.cargarDatos()
-            isRefreshing = false
-        }
-    }
-    
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { isRefreshing = true },
-        state = pullToRefreshState
-    ) {
-        LazyColumn { ... }
-    }
+val pullRefreshState = rememberPullToRefreshState()
+PullToRefreshBox(
+    isRefreshing = isRefreshing,
+    onRefresh = { viewModel.loadData() },
+    state = pullRefreshState
+) {
+    LazyColumn { ... }
 }
 ```
 
 ---
 
-## 13. ExposedDropdownMenu (Dropdowns)
-
-### Código completo:
+## 13. ExposedDropdownMenu
 
 ```kotlin
 var expanded by remember { mutableStateOf(false) }
-val opciones = listOf("Opción 1", "Opción 2", "Opción 3")
-var seleccion by remember { mutableStateOf(opciones[0]) }
-
-ExposedDropdownMenuBox(
-    expanded = expanded,
-    onExpandedChange = { expanded = !expanded }
-) {
+ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
     OutlinedTextField(
-        value = seleccion,
+        value = selectedValue,
         onValueChange = {},
-        readOnly = true,                    // ← Importante: no editable
-        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-        modifier = Modifier.fillMaxWidth().menuAnchor(),  // ← El anchor es crucial
-        label = { Text("Selecciona") }
+        readOnly = true,
+        modifier = Modifier.menuAnchor(),
+        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
     )
-    ExposedDropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false }
-    ) {
-        opciones.forEach { opcion ->
-            DropdownMenuItem(
-                text = { Text(opcion) },
-                onClick = {
-                    seleccion = opcion
-                    expanded = false
-                }
-            )
+    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        options.forEach { option ->
+            DropdownMenuItem(text = { Text(option) }, onClick = { selectedValue = option; expanded = false })
         }
     }
 }
 ```
-
-### Notas importantes:
-- El campo debe ser `readOnly = true` para que no se abra el teclado
-- `menuAnchor()` es necesario para que el dropdown se posicione correctamente
-- `@OptIn(ExperimentalMaterial3Api::class)` es necesario
 
 ---
 
 ## 14. DatePicker y TimePicker
 
-### DatePicker (calendario):
-
 ```kotlin
-var showDatePicker by remember { mutableStateOf(false) }
+// DatePicker
+val dateState = rememberDatePickerState()
+DatePickerDialog(
+    onDismissRequest = { },
+    confirmButton = { TextButton(onClick = { dateState.selectedDateMillis?.let { ... } }) { Text("OK") } },
+    dismissButton = { TextButton(onClick = { }) { Text("Cancelar") } }
+) { DatePicker(state = dateState) }
 
-if (showDatePicker) {
-    val datePickerState = rememberDatePickerState()
-    
-    androidx.compose.material3.DatePickerDialog(
-        onDismissRequest = { showDatePicker = false },
-        confirmButton = {
-            TextButton(onClick = {
-                datePickerState.selectedDateMillis?.let { millis ->
-                    // millis es Long (timestamp Unix)
-                    onDateSelected(millis)
-                }
-                showDatePicker = false
-            }) { Text("Aceptar") }
-        },
-        dismissButton = {
-            TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
-        }
-    ) {
-        DatePicker(state = datePickerState)
-    }
-}
-```
-
-### Formatear fecha para mostrar:
-
-```kotlin
-val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale("es", "PE")) }
-val fechaStr = if (fechaMillis > 0) dateFormat.format(Date(fechaMillis)) else ""
-```
-
-### TimePicker (selector de hora):
-
-Se implementó un diálogo custom con botones ▲▼. Para usar el TimePicker nativo de Android:
-
-```kotlin
-// Alternativa con TimePicker nativo (requiere contexto de Activity):
-val context = LocalContext.current
-val activity = context as Activity
-
-val timePickerDialog = android.app.TimePickerDialog(
-    context,
-    { _, hour, minute ->
-        onTimeSelected(hour, minute)
-    },
-    initialHour, initialMinute, true  // true = formato 24h
+// TimePicker
+val timeState = rememberTimePickerState(initialHour = 8, initialMinute = 0, is24Hour = true)
+AlertDialog(
+    text = { TimePicker(state = timeState) },
+    confirmButton = { TextButton(onClick = { onTimeSelected(timeState.hour, timeState.minute) }) { Text("OK") } }
 )
-timePickerDialog.show()
 ```
 
 ---
 
 ## 15. Código QR
 
-### Generar QR con zxing:
-
+Generación con ZXing:
 ```kotlin
-// En TicketScreen.kt
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.qrcode.QRCodeWriter
-
-private fun generateQrCode(content: String): Bitmap? {
-    val writer = QRCodeWriter()
-    val bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, 512, 512)
-    val bitmap = Bitmap.createBitmap(512, 512, Bitmap.Config.RGB_565)
-    for (x in 0 until 512) {
-        for (y in 0 until 512) {
-            bitmap.setPixel(x, y, if (bitMatrix[x, y]) 
-                android.graphics.Color.BLACK 
-            else 
-                android.graphics.Color.WHITE)
-        }
-    }
-    return bitmap
-}
-```
-
-### Mostrar el QR:
-
-```kotlin
-val qrBitmap = remember(qrContent) { generateQrCode(qrContent) }
-
-if (qrBitmap != null) {
-    Image(
-        bitmap = qrBitmap.asImageBitmap(),
-        contentDescription = "QR",
-        modifier = Modifier.size(160.dp)
-    )
-}
-```
-
-### Dependencia necesaria (build.gradle.kts):
-```kotlin
-implementation("com.google.zxing:core:3.5.3")
+val writer = QRCodeWriter()
+val bitMatrix = writer.encode("Contenido del QR", BarcodeFormat.QR_CODE, 512, 512)
+val bitmap = Bitmap.createBitmap(512, 512, Bitmap.Config.RGB_565)
+// pixel por pixel...
 ```
 
 ---
 
 ## 16. Notificaciones Push FCM
 
-### Servicio (BusifyMessagingService.kt):
-
+### BusifyMessagingService
 ```kotlin
 class BusifyMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
-        // Se llama cuando el token cambia (primera vez o renovación)
+        // Auto-guarda token en Firestore: users/{uid}/fcmToken
     }
-
     override fun onMessageReceived(message: RemoteMessage) {
-        val title = message.notification?.title ?: message.data["title"]
-        val body = message.notification?.body ?: message.data["body"]
-        showNotification(title ?: "Busify", body ?: "")
+        showNotification(title, body)
     }
 }
 ```
 
-### Para enviar notificaciones desde Firebase Console:
-1. Ir a [Firebase Console](https://console.firebase.google.com)
-2. Seleccionar proyecto Busify
-3. Ir a "Cloud Messaging"
-4. Crear campaña → "Notificación de Firebase"
-5. Escribir título y cuerpo
-6. En "Segmento de usuarios" elegir "Todos los usuarios" o "Android"
-7. Enviar
+### Manifest
+```xml
+<service android:name=".core.fcm.BusifyMessagingService" android:exported="false">
+    <intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT" /></intent-filter>
+</service>
+```
 
-### Para enviar desde código (Cloud Function o servidor):
+---
 
+## 17. Validación de Formularios
+
+```kotlin
+object Validation {
+    fun isValidEmail(email: String): Boolean
+    fun isValidPassword(password: String): ValidationResult
+    fun isValidName(name: String): Boolean
+}
+data class ValidationResult(val isValid: Boolean, val errorMessage: String? = null)
+```
+
+Usado en LoginScreen y RegisterScreen para validar antes de enviar.
+
+---
+
+## 18. Subida de Fotos (Firebase Storage)
+
+```kotlin
+val storageRef = FirebaseStorage.getInstance()
+    .reference.child("profile_photos/${uid}.jpg")
+storageRef.putFile(uri).await()
+val downloadUrl = storageRef.downloadUrl.await()
+// Guardar downloadUrl en Firestore: users/{uid}/photoUrl
+```
+
+Mostrar con Coil:
+```kotlin
+AsyncImage(model = user.photoUrl, contentDescription = "Foto")
+```
+
+---
+
+## 19. Pantalla de Conductor
+
+- Acceso: role == 3L
+- Bottom nav item "Conducir" con icono SteeringWheel
+- Muestra rutas donde `driverId == currentUser.uid`
+- Al seleccionar ruta: lista de pasajeros con sus tickets
+- Botón "Usado" → cambia `ticket.status` a "usado"
+
+---
+
+## 20. Firebase Cloud Functions
+
+### functions/index.js
+```javascript
+exports.onTicketCreated = functions.firestore
+    .document("tickets/{ticketId}").onCreate(async (snap) => { ... });
+
+exports.onRouteUpdated = functions.firestore
+    .document("routes/{routeId}").onUpdate(async (change) => { ... });
+
+exports.onRouteCreated = functions.firestore
+    .document("routes/{routeId}").onCreate(async (snap) => { ... });
+```
+
+### Despliegue
 ```bash
-# POST request a Firebase API
-curl -X POST -H "Authorization: key=YOUR_SERVER_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "/topics/all",
-    "notification": {
-      "title": "Nueva ruta",
-      "body": "Se agregó una nueva ruta Lima → Cusco"
-    }
-  }' \
-  https://fcm.googleapis.com/fcm/send
+cd functions
+npm install
+firebase deploy --only functions
 ```
 
 ---
 
-## Preguntas Típicas de Examen
+## 21. Roles y Navegación Condicional
 
-### 1. "Agrega un botón en la pantalla de inicio"
+Tres roles:
+| Role | Valor | Acceso |
+|------|-------|--------|
+| Usuario | 1L | Home, Buses, Viajes, Perfil |
+| Administrador | 2L | + Admin tab |
+| Chofer | 3L | + Conducir tab |
 
-```kotlin
-// En HomeScreen.kt, dentro del Column:
-Button(
-    onClick = { /* tu acción */ },
-    modifier = Modifier.fillMaxWidth(),
-    shape = MaterialTheme.shapes.medium
-) {
-    Text("Nuevo Botón")
-}
-```
-
-### 2. "Cambia el color del tema a azul"
-
-```kotlin
-// En core/theme/Color.kt:
-val md_theme_light_primary = Color(0xFF1976D2)  // Azul Material
-```
-
-### 3. "Agrega un campo 'teléfono' al perfil"
-
-```kotlin
-// 1. User.kt: val phone: String = ""
-// 2. ProfileScreen.kt: Agregar OutlinedTextField
-// 3. ProfileViewModel.kt: Incluir phone en updateUser()
-```
-
-### 4. "Haz que las rutas se ordenen por precio"
-
-```kotlin
-// En RouteRepository.kt:
-firestore.collection("routes")
-    .orderBy("price", Query.Direction.ASCENDING)  // Menor a mayor
-    // .orderBy("price", Query.Direction.DESCENDING) // Mayor a menor
-    .get().await()
-```
-
-### 5. "Muestra solo rutas con estado 'A tiempo'"
-
-```kotlin
-// En BusesViewModel o repository:
-firestore.collection("routes")
-    .whereEqualTo("status", "A tiempo")
-    .get().await()
-```
-
-### 6. "No permitir comprar más asientos de los disponibles"
-
-```kotlin
-// En SeatSelectionScreen:
-val routeCapacity = 40
-val occupiedCount = bookedSeats.size
-val availableCount = routeCapacity - occupiedCount
-// Luego limitar selección:
-val maxSeats = minOf(5, availableCount)
-```
+En `MainScaffold` se filtran los items del bottom nav según el rol.
 
 ---
 
-## Glosario Rápido
+## 22. Offline Persistence
 
-| Término | Significado |
-|---------|-------------|
-| `@Composable` | Función que renderiza UI en Compose |
-| `remember` | Guarda valor entre recomposiciones |
-| `mutableStateOf` | Crea estado observable por Compose |
-| `viewModelScope` | Corrutina ligada al ciclo de vida del ViewModel |
-| `LaunchedEffect` | Ejecuta efecto secundario cuando cambian sus parámetros |
-| `Scaffold` | Layout base con soporte para TopBar, BottomBar, Snackbar |
-| `NavController` | Controla la navegación entre pantallas |
-| `Resource<T>` | Envoltorio: Success, Error, Loading |
-| `FieldValue.increment()` | Operación atómica de Firestore para sumar/restar |
+```kotlin
+FirebaseFirestore.getInstance().firestoreSettings = FirebaseFirestoreSettings.Builder()
+    .setPersistenceEnabled(true)
+    .build()
+```
 
----
-
-> **Consejo para el examen:** Entiende el flujo MVVM (Screen → ViewModel → Repository → Firebase). Si te piden agregar algo nuevo, sigue la misma estructura de los archivos existentes. Busca el archivo más parecido a lo que necesitas y cópialo como plantilla.
+Habilitado en `MainActivity.onCreate()`. Permite que Firestore funcione sin conexión a internet (caché local).

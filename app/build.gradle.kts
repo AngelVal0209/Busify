@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.example.busify"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.busify"
         minSdk = 29
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -37,18 +37,23 @@ android {
 }
 
 dependencies {
-
-    // Firebase dependencies
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.13.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // ZXing QR
     implementation("com.google.zxing:core:3.5.3")
 
+    // Core AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+
+    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -58,6 +63,19 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
 
+    // Splash Screen
+    implementation("androidx.core:core-splashscreen:1.2.0")
+
+    // Lottie
+    implementation("com.airbnb.android:lottie-compose:6.6.4")
+
+    // Shimmer
+    implementation("com.valentinilk.shimmer:compose-shimmer:1.3.1")
+
+    // QR Scanner (Google Play Services)
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

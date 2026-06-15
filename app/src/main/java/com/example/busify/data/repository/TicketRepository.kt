@@ -50,4 +50,27 @@ class TicketRepository(
             Resource.Error(e.message ?: "Error al obtener tus tickets")
         }
     }
+
+    suspend fun getTicketsByRoute(routeId: String): Resource<List<Ticket>> {
+        return try {
+            val snapshot = firestore.collection("tickets")
+                .whereEqualTo("routeId", routeId)
+                .get()
+                .await()
+            val tickets = snapshot.toObjects(Ticket::class.java)
+            Resource.Success(tickets)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al obtener tickets de la ruta")
+        }
+    }
+
+    suspend fun updateTicketStatus(ticketId: String, status: String): Resource<Boolean> {
+        return try {
+            firestore.collection("tickets").document(ticketId)
+                .update("status", status).await()
+            Resource.Success(true)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al actualizar estado del ticket")
+        }
+    }
 }

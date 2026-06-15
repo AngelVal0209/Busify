@@ -2,6 +2,7 @@ package com.example.busify.data.repository
 
 import com.example.busify.core.util.Resource
 import com.example.busify.domain.model.User
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
@@ -97,5 +98,65 @@ class AuthRepository(
                 }
             }
         awaitClose { listener.remove() }
+    }
+
+    suspend fun resetPassword(email: String): Resource<Unit> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al enviar correo de restablecimiento")
+        }
+    }
+
+    suspend fun sendEmailVerification(): Resource<Unit> {
+        return try {
+            auth.currentUser?.sendEmailVerification()?.await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al enviar verificación de correo")
+        }
+    }
+
+    fun isEmailVerified(): Boolean = auth.currentUser?.isEmailVerified ?: false
+
+    suspend fun updatePassword(newPassword: String): Resource<Unit> {
+        return try {
+            auth.currentUser?.updatePassword(newPassword)?.await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al actualizar contraseña")
+        }
+    }
+
+    suspend fun updateEmail(newEmail: String): Resource<Unit> {
+        return try {
+            auth.currentUser?.verifyBeforeUpdateEmail(newEmail)?.await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al actualizar correo electrónico")
+        }
+    }
+
+    suspend fun reauthenticate(email: String, password: String): Resource<Unit> {
+        return try {
+            val credential = EmailAuthProvider.getCredential(email, password)
+            auth.currentUser?.reauthenticate(credential)?.await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al reautenticar")
+        }
+    }
+
+    suspend fun deleteAccount(): Resource<Unit> {
+        return try {
+            auth.currentUser?.let { user ->
+                firestore.collection("users").document(user.uid).delete().await()
+                user.delete().await()
+            }
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Error al eliminar cuenta")
+        }
     }
 }

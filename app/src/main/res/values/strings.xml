@@ -1,3 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Busify</string>
+    <!-- General -->
+    <string name="loading">Cargando...</string>
+    <string name="error_occurred">Ocurrió un error</string>
+    <string name="retry">Reintentar</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="confirm">Confirmar</string>
+    <string name="delete">Eliminar</string>
+    <string name="close">Cerrar</string>
+    <!-- Auth -->
+    <string name="login">Iniciar Sesión</string>
+    <string name="register">Crear Cuenta</string>
+    <string name="email">Correo electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="reset_password">Restablecer contraseña</string>
+    <string name="reset_password_sent">Correo de restablecimiento enviado. Revisa tu bandeja de entrada.</string>
+    <string name="email_verification_sent">Correo de verificación enviado. Revisa tu bandeja de entrada.</string>
+    <string name="verify_email">Verificar Email</string>
+    <string name="welcome">Bienvenido a Busify</string>
+    <string name="welcome_subtitle">Tu transporte, simplificado</string>
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_buses">Buses</string>
+    <string name="nav_admin">Admin</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="nav_viajes">Viajes</string>
+    <string name="nav_driver">Conducir</string>
+    <!-- Profile -->
+    <string name="my_profile">Mi Perfil</string>
+    <string name="edit_profile">Editar Datos</string>
+    <string name="my_trips">Mis Viajes</string>
+    <string name="change_password">Cambiar Contraseña</string>
+    <string name="change_email">Cambiar Correo</string>
+    <string name="delete_account">Eliminar Cuenta</string>
+    <string name="logout">Cerrar Sesión</string>
+    <string name="no_trips">No tienes viajes realizados</string>
+    <!-- Admin -->
+    <string name="admin_panel">Panel de Administración</string>
+    <string name="create_route">Crear Ruta</string>
+    <string name="edit_route">Editar Ruta</string>
+    <string name="manage_routes">Gestionar Rutas</string>
+    <string name="manage_users">Gestionar Usuarios</string>
+    <!-- Driver -->
+    <string name="my_routes">Mis Rutas</string>
+    <string name="passengers">Pasajeros</string>
+    <string name="no_assigned_routes">No tienes rutas asignadas</string>
+    <string name="no_passengers">No hay pasajeros registrados</string>
+    <!-- Notification channels -->
+    <string name="notification_channel_name">Notificaciones Busify</string>
+    <string name="notification_channel_desc">Notificaciones de viajes y rutas</string>
 </resources>

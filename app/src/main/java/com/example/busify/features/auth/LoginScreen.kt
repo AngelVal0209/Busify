@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.example.busify.core.components.BusifyButton
 import com.example.busify.core.components.BusifyTextField
 import com.example.busify.core.util.Resource
+import com.example.busify.core.util.Validation
 import kotlinx.coroutines.launch
 
 @Composable
@@ -33,19 +34,104 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
+    var resetEmail by remember { mutableStateOf("") }
+    var showVerifyButton by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     val loginState by viewModel.loginState
+    val resetPasswordState by viewModel.resetPasswordState
+    val emailVerificationState by viewModel.emailVerificationState
 
     LaunchedEffect(loginState) {
         when (loginState) {
-            is Resource.Success -> onLoginSuccess()
+            is Resource.Success -> {
+                if (viewModel.isEmailVerified()) {
+                    onLoginSuccess()
+                } else {
+                    showVerifyButton = true
+                    snackbarHostState.showSnackbar("Por favor verifica tu correo electrónico antes de continuar")
+                }
+            }
             is Resource.Error -> {
                 snackbarHostState.showSnackbar(loginState?.message ?: "Error")
             }
             else -> {}
         }
+    }
+
+    LaunchedEffect(resetPasswordState) {
+        when (resetPasswordState) {
+            is Resource.Success -> {
+                showResetDialog = false
+                snackbarHostState.showSnackbar("Correo de restablecimiento enviado. Revisa tu bandeja de entrada.")
+                viewModel.clearResetPasswordState()
+            }
+            is Resource.Error -> {
+                snackbarHostState.showSnackbar(resetPasswordState?.message ?: "Error al enviar correo")
+                viewModel.clearResetPasswordState()
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(emailVerificationState) {
+        when (emailVerificationState) {
+            is Resource.Success -> {
+                snackbarHostState.showSnackbar("Correo de verificación enviado. Revisa tu bandeja de entrada.")
+                viewModel.clearEmailVerificationState()
+            }
+            is Resource.Error -> {
+                snackbarHostState.showSnackbar(emailVerificationState?.message ?: "Error al enviar verificación")
+                viewModel.clearEmailVerificationState()
+            }
+            else -> {}
+        }
+    }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Restablecer contraseña") },
+            text = {
+                Column {
+                    Text("Ingresa tu correo electrónico para recibir un enlace de restablecimiento.")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    BusifyTextField(
+                        value = resetEmail,
+                        onValueChange = { resetEmail = it },
+                        label = "Correo electrónico",
+                        leadingIcon = Icons.Default.Email
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (resetEmail.isNotEmpty()) {
+                            viewModel.resetPassword(resetEmail)
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Ingresa un correo electrónico")
+                            }
+                        }
+                    },
+                    enabled = resetPasswordState !is Resource.Loading
+                ) {
+                    if (resetPasswordState is Resource.Loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    } else {
+                        Text("Enviar")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
@@ -117,7 +203,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             TextButton(
-                onClick = { },
+                onClick = { showResetDialog = true },
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Text("¿Olvidaste tu contraseña?", style = MaterialTheme.typography.labelMedium)
@@ -132,6 +218,13 @@ fun LoginScreen(
                     text = "Iniciar Sesión",
                     onClick = {
                         if (email.isNotEmpty() && password.isNotEmpty()) {
+                            if (!Validation.isValidEmail(email)) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Formato de correo electrónico inválido")
+                                }
+                                return@BusifyButton
+                            }
+                            showVerifyButton = false
                             viewModel.login(email, password)
                         } else {
                             scope.launch {
@@ -139,6 +232,15 @@ fun LoginScreen(
                             }
                         }
                     }
+                )
+            }
+
+            if (showVerifyButton) {
+                Spacer(modifier = Modifier.height(12.dp))
+                BusifyButton(
+                    text = "Verificar Email",
+                    onClick = { viewModel.sendEmailVerification() },
+                    containerColor = MaterialTheme.colorScheme.secondary
                 )
             }
 

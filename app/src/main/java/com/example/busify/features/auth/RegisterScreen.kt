@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.example.busify.core.components.BusifyButton
 import com.example.busify.core.components.BusifyTextField
 import com.example.busify.core.util.Resource
+import com.example.busify.core.util.Validation
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,15 +37,33 @@ fun RegisterScreen(
     val scope = rememberCoroutineScope()
 
     val registerState by viewModel.registerState
+    val emailVerificationState by viewModel.emailVerificationState
+    var verificationSent by remember { mutableStateOf(false) }
 
     LaunchedEffect(registerState) {
         when (registerState) {
             is Resource.Success -> {
-                snackbarHostState.showSnackbar("Cuenta creada exitosamente")
-                onNavigateBack()
+                verificationSent = true
+                snackbarHostState.showSnackbar("Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión.")
             }
             is Resource.Error -> {
                 snackbarHostState.showSnackbar(registerState?.message ?: "Error")
+            }
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(emailVerificationState) {
+        when (emailVerificationState) {
+            is Resource.Success -> {
+                if (verificationSent) {
+                    onNavigateBack()
+                }
+                viewModel.clearEmailVerificationState()
+            }
+            is Resource.Error -> {
+                snackbarHostState.showSnackbar(emailVerificationState?.message ?: "Error al enviar verificación")
+                viewModel.clearEmailVerificationState()
             }
             else -> {}
         }
@@ -82,7 +101,7 @@ fun RegisterScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Text(
                 text = "Únete a la comunidad de Busify hoy mismo.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -136,19 +155,47 @@ fun RegisterScreen(
                     text = "Crear Cuenta",
                     onClick = {
                         if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
-                            if (password == confirmPassword) {
-                                viewModel.register(name, email, password)
-                            } else {
+                            if (!Validation.isValidName(name)) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("El nombre debe tener al menos 2 caracteres")
+                                }
+                                return@BusifyButton
+                            }
+                            if (!Validation.isValidEmail(email)) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Formato de correo electrónico inválido")
+                                }
+                                return@BusifyButton
+                            }
+                            val passwordValidation = Validation.isValidPassword(password)
+                            if (!passwordValidation.isValid) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(passwordValidation.errorMessage ?: "Contraseña inválida")
+                                }
+                                return@BusifyButton
+                            }
+                            if (password != confirmPassword) {
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Las contraseñas no coinciden")
                                 }
+                                return@BusifyButton
                             }
+                            viewModel.register(name, email, password)
                         } else {
                             scope.launch {
                                 snackbarHostState.showSnackbar("Por favor llena todos los campos")
                             }
                         }
                     }
+                )
+            }
+
+            if (verificationSent) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Se ha enviado un correo de verificación a $email. Por favor verifica tu cuenta antes de iniciar sesión.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 

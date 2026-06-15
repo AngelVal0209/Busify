@@ -8,13 +8,19 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.example.busify.MainActivity
 import com.example.busify.R
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class BusifyMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
+        saveTokenToFirestore(token)
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
@@ -22,6 +28,19 @@ class BusifyMessagingService : FirebaseMessagingService() {
         val title = message.notification?.title ?: message.data["title"] ?: "Busify"
         val body = message.notification?.body ?: message.data["body"] ?: "Nueva notificación"
         showNotification(title, body)
+    }
+
+    private fun saveTokenToFirestore(token: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                auth.currentUser?.let { user ->
+                    FirebaseFirestore.getInstance()
+                        .collection("users").document(user.uid)
+                        .update("fcmToken", token).await()
+                }
+            } catch (_: Exception) { }
+        }
     }
 
     private fun showNotification(title: String, body: String) {
