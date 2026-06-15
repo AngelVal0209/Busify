@@ -1,9 +1,12 @@
 package com.example.busify.features.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -11,11 +14,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,9 +31,13 @@ import com.example.busify.features.auth.AuthViewModel
 import com.example.busify.features.buses.BusesViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.busify.R
+import androidx.navigation.NavController
+import com.example.busify.core.navigation.Screen
 
 @Composable
 fun HomeScreen(
+    navController: NavController,
     authViewModel: AuthViewModel,
     busesViewModel: BusesViewModel = viewModel()
 ) {
@@ -41,6 +51,7 @@ fun HomeScreen(
             .padding(24.dp)
             .verticalScroll(rememberScrollState())
     ) {
+        //header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -59,7 +70,9 @@ fun HomeScreen(
                 )
             }
             IconButton(
-                onClick = { },
+                onClick = {
+                    //funnoti
+                },
                 modifier = Modifier
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surface)
@@ -69,7 +82,7 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
-
+        //titulo
         Text(
             text = "Estado del Sistema",
             style = MaterialTheme.typography.titleLarge,
@@ -77,7 +90,7 @@ fun HomeScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
+        //card superiores
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             val routeCount = if (routesState is Resource.Success) routesState.data?.size ?: 0 else 0
             StatCard(
@@ -99,7 +112,7 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(32.dp))
-
+        //titulo
         Text(
             text = "Rutas Disponibles",
             style = MaterialTheme.typography.titleLarge,
@@ -107,7 +120,7 @@ fun HomeScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
+        //mostrar todas las rutas
         when (routesState) {
             is Resource.Loading -> {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -132,6 +145,92 @@ fun HomeScreen(
             }
             is Resource.Error -> {
                 Text(text = "Error al cargar rutas", color = MaterialTheme.colorScheme.error)
+            }
+        }
+        //promos
+        val banners = listOf(
+            R.drawable.promos,
+            R.drawable.promo_university
+        )
+
+        val pagerState = rememberPagerState(
+            pageCount = { banners.size }
+        )
+
+        LaunchedEffect(Unit) {
+
+            while (true) {
+
+                kotlinx.coroutines.delay(3000)
+
+                val nextPage =
+                    (pagerState.currentPage + 1) % banners.size
+
+                pagerState.animateScrollToPage(nextPage)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+        ) { page ->
+
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = MaterialTheme.shapes.large
+            ) {
+
+                Box {
+
+                    Image(
+                        painter = painterResource(id = banners[page]),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+
+                        Text(
+                            text = "Descuento en pasajes",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Obtén acceso a descuentos exclusivos",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        //BP
+                        Button(
+                            onClick = { },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            )
+                        ) {
+
+                            Text("Ver promociones")
+                        }
+                    }
+                }
             }
         }
     }

@@ -147,7 +147,7 @@ fun ProfileScreen(
 
             ProfileOptionItem(
                 icon = Icons.Default.History,
-                title = "Mis Viajes",
+                title = "Mis Compras",
                 onClick = { showTickets = !showTickets }
             )
 

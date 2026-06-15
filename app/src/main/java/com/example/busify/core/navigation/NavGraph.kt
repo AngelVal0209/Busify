@@ -18,6 +18,7 @@ import com.example.busify.features.home.HomeScreen
 import com.example.busify.features.buses.BusesScreen
 import com.example.busify.features.profile.ProfileScreen
 import com.example.busify.features.admin.AdminScreen
+import com.example.busify.features.promos.PromosScreen
 
 // =========================
 // IMPORTS VIAJES
@@ -100,7 +101,10 @@ fun BusifyNavigation(
                 viewModel = viewModel
             ) {
 
-                HomeScreen(authViewModel = viewModel)
+                HomeScreen(
+                    navController = navController,
+                    authViewModel = viewModel
+                )
             }
         }
 
@@ -176,6 +180,13 @@ fun BusifyNavigation(
                 ViajesScreen(navController)
             }
         }
+        //Promos
+        composable(Screen.Promos.route) {
+
+           PromosScreen()
+        }
+
+
 
         // =========================
         // SEATS

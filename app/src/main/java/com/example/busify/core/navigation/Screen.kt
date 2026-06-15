@@ -7,6 +7,8 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.graphics.vector.ImageVector
+//promos
+import com.example.busify.features.promos.PromosScreen
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -16,6 +18,8 @@ sealed class Screen(val route: String) {
     object Profile : Screen("profile")
     object Admin : Screen("admin")
     object Viajes : Screen("viajes")
+   object Promos : Screen("promos")
+
 
     object Seats : Screen("seats/{routeId}/{company}/{origin}/{destination}/{price}/{departureTime}")
 

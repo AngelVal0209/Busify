@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -33,12 +34,30 @@ fun PaymentScreen(
     val routeRepository = remember { RouteRepository() }
     var selectedMethod by remember { mutableStateOf("Yape") }
     var isPaying by remember { mutableStateOf(false) }
+    // NUEVO: Campos para pago con Visa
+    var cardNumber by remember { mutableStateOf("") }
+    var cardHolder by remember { mutableStateOf("") }
+    var expiryDate by remember { mutableStateOf("") }
+    var cvv by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val seatList = remember(seats) {
         seats.split("_").mapNotNull { it.toLongOrNull() }
     }
-    val totalPrice = remember(seatList, price) { seatList.size * price }
+    //val totalPrice = remember(seatList, price) { seatList.size * price }
+    // Precio sin descuento
+    val subtotal = remember(seatList, price) {
+        seatList.size * price
+    }
+    // NUEVO: descuento del 10%
+    val discount = remember(subtotal) {
+        subtotal * 0.10
+    }
+
+// NUEVO: total final
+    val totalPrice = remember(subtotal) {
+        subtotal - discount
+    }
 
     Scaffold(
         topBar = {
@@ -76,11 +95,19 @@ fun PaymentScreen(
                     DetailRow("Empresa", company)
                     DetailRow("Ruta", "$origin → $destination")
                     DetailRow("Salida", departureTime)
-                    DetailRow("Asientos", seatList.sorted().joinToString(", "))
+                    DetailRow("N° Asientos", seatList.sorted().joinToString(", "))
                     DetailRow("Cantidad", "${seatList.size}")
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-                    DetailRow("Precio unitario", "S/ $price")
-                    DetailRow("Total", "S/ ${"%.2f".format(totalPrice)}")
+                    //NORMAL
+                    //DetailRow("Precio unitario", "S/ $price")
+                    //DetailRow("Total", "S/ ${"%.2f".format(totalPrice)}")                    //
+                    //DetailRow("Descuento", "S/ 10.00".format(totalPrice-10))
+                    //APLICANDO DESCUENTO
+                    DetailRow("Precio unitario", "S/ $price")// NUEVO
+                    DetailRow("Subtotal", "S/ ${"%.2f".format(subtotal)}")// NUEVO
+                    DetailRow("Descuento (10%)", "- S/ ${"%.2f".format(discount)}")// NUEVO
+                    DetailRow("Total Final", "S/ ${"%.2f".format(totalPrice)}")
+
                 }
             }
 
@@ -101,6 +128,7 @@ fun PaymentScreen(
                     label = { Text("Yape") }
                 )
                 FilterChip(
+
                     selected = selectedMethod == "Visa",
                     onClick = { selectedMethod = "Visa" },
                     label = { Text("Visa") }
@@ -110,6 +138,48 @@ fun PaymentScreen(
                     onClick = { selectedMethod = "Plin" },
                     label = { Text("Plin") }
                 )
+            }
+            // NUEVO: Mostrar formulario solo si el usuario elige Visa
+            if (selectedMethod == "Visa") {
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = cardNumber,
+                    onValueChange = { cardNumber = it },
+                    label = { Text("Número de tarjeta") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = cardHolder,
+                    onValueChange = { cardHolder = it },
+                    label = { Text("Titular de la tarjeta") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    OutlinedTextField(
+                        value = expiryDate,
+                        onValueChange = { expiryDate = it },
+                        label = { Text("MM/AA") },
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = cvv,
+                        onValueChange = { cvv = it },
+                        label = { Text("CVV") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -123,6 +193,26 @@ fun PaymentScreen(
                         isPaying = false
                         return@Button
                     }
+                    // NUEVO: Validar datos de Visa
+                    if (selectedMethod == "Visa") {
+
+                        if (
+                            cardNumber.isBlank() ||
+                            cardHolder.isBlank() ||
+                            expiryDate.isBlank() ||
+                            cvv.isBlank()
+                        ) {
+
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "Completa todos los datos de la tarjeta"
+                                )
+                            }
+
+                            isPaying = false
+                            return@Button
+                        }
+                    }
                     val ticket = Ticket(
                         userId = userId,
                         routeId = routeId,
@@ -131,8 +221,9 @@ fun PaymentScreen(
                         destination = destination,
                         departureTime = departureTime,
                         seatNumbers = seatList,
-                        totalPrice = totalPrice,
+                        //totalPrice = totalPrice,
                         paymentMethod = selectedMethod,
+                        totalPrice = totalPrice, // aquí se guarda el precio final CON DESCEUTNO
                         status = "confirmado"
                     )
 
@@ -167,7 +258,12 @@ fun PaymentScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Pagar S/ ${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold)
+                    //Text("Pagar S/ ${"%.2f".format(totalPrice)}", fontWeight = FontWeight.Bold)
+                    //ACTUALIZADO
+                    Text(
+                        "Pagar S/ ${"%.2f".format(totalPrice)}",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
