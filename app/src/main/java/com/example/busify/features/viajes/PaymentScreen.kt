@@ -255,23 +255,45 @@ private fun AddCardDialog(userId: String, cardRepository: PaymentMethodRepositor
     var type by remember { mutableStateOf("Visa") }
     var holderName by remember { mutableStateOf("") }
     var cardNumber by remember { mutableStateOf("") }
+    var ccv by remember { mutableStateOf("") }
+    var expiryDate by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+    var approvalCode by remember { mutableStateOf("") }
     var isDefault by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isCardType = type == "Visa"
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Agregar Tarjeta") },
+        title = { Text(if (isCardType) "Agregar Tarjeta" else "Agregar $type") },
         text = {
             Column {
                 Text("Tipo", style = MaterialTheme.typography.labelMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf("Yape", "Visa", "Plin").forEach { t -> FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t) }) } }
                 Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(value = holderName, onValueChange = { holderName = it }, label = { Text("Titular") }, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = cardNumber, onValueChange = { if (it.all { c -> c.isDigit() } && it.length <= 16) cardNumber = it }, label = { Text("Número") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = MaterialTheme.shapes.medium)
+
+                if (isCardType) {
+                    OutlinedTextField(value = holderName, onValueChange = { holderName = it }, label = { Text("Titular") }, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = cardNumber, onValueChange = { if (it.all { c -> c.isDigit() } && it.length <= 16) cardNumber = it }, label = { Text("Número de tarjeta") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = MaterialTheme.shapes.medium, placeholder = { Text("1234 5678 9012 3456") })
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(value = ccv, onValueChange = { if (it.all { c -> c.isDigit() } && it.length <= 3) ccv = it }, label = { Text("CCV") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = MaterialTheme.shapes.medium, placeholder = { Text("123") })
+                        OutlinedTextField(value = expiryDate, onValueChange = {
+                            val clean = it.filter { c -> c.isDigit() }
+                            val formatted = if (clean.length >= 3) "${clean.take(2)}/${clean.drop(2).take(2)}" else clean
+                            if (clean.length <= 4) expiryDate = formatted
+                        }, label = { Text("Vencimiento") }, modifier = Modifier.weight(1f), shape = MaterialTheme.shapes.medium, placeholder = { Text("MM/AA") })
+                    }
+                } else {
+                    OutlinedTextField(value = phoneNumber, onValueChange = { if (it.all { c -> c.isDigit() } && it.length <= 9) phoneNumber = it }, label = { Text("Número de celular") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), shape = MaterialTheme.shapes.medium, placeholder = { Text("999 888 777") })
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = approvalCode, onValueChange = { if (it.all { c -> c.isDigit() } && it.length <= 6) approvalCode = it }, label = { Text("Código de aprobación") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), shape = MaterialTheme.shapes.medium, placeholder = { Text("123456") })
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(checked = isDefault, onCheckedChange = { isDefault = it }); Text("Establecer como método por defecto", style = MaterialTheme.typography.bodySmall) }
             }
@@ -279,10 +301,26 @@ private fun AddCardDialog(userId: String, cardRepository: PaymentMethodRepositor
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (holderName.isBlank() || cardNumber.length < 4) { scope.launch { snackbarHostState.showSnackbar("Completa todos los campos") }; return@TextButton }
+                    if (isCardType) {
+                        if (holderName.isBlank() || cardNumber.length < 16 || ccv.length < 3 || expiryDate.length < 5) {
+                            scope.launch { snackbarHostState.showSnackbar("Completa todos los campos correctamente") }; return@TextButton
+                        }
+                    } else {
+                        if (phoneNumber.length < 9 || approvalCode.length < 4) {
+                            scope.launch { snackbarHostState.showSnackbar("Ingresa número y código de aprobación") }; return@TextButton
+                        }
+                    }
                     saving = true
                     scope.launch {
-                        val card = SavedCard(userId = userId, type = type, holderName = holderName, lastDigits = cardNumber.takeLast(4), isDefault = isDefault)
+                        val card = SavedCard(
+                            userId = userId, type = type,
+                            holderName = if (isCardType) holderName else phoneNumber,
+                            lastDigits = if (isCardType) cardNumber.takeLast(4) else phoneNumber.takeLast(4),
+                            ccv = if (isCardType) ccv else "",
+                            expiryDate = if (isCardType) expiryDate else "",
+                            phoneNumber = if (isCardType) "" else phoneNumber,
+                            isDefault = isDefault
+                        )
                         val result = cardRepository.saveCard(card)
                         if (result is Resource.Success && isDefault) cardRepository.setDefaultCard(userId, result.data ?: return@launch)
                         saving = false; onSaved()

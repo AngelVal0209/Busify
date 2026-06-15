@@ -49,7 +49,7 @@ fun BusifyNavigation(
     onOnboardingComplete: () -> Unit = {}
 ) {
     val navController = rememberNavController()
-    val currentUser by remember { mutableStateOf(viewModel.currentUserData.value) }
+    val currentUser = viewModel.currentUserData.value
     val startDestination = when {
         !onboardingComplete -> Screen.Onboarding.route
         currentUser != null -> Screen.Home.route

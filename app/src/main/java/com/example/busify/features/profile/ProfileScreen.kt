@@ -249,7 +249,12 @@ fun ProfileScreen(
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             Text(card.type, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                            Text("***${card.lastDigits} - ${card.holderName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                            if (card.type == "Visa") {
+                                                Text("***${card.lastDigits} - ${card.holderName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                                Text("Vence: ${card.expiryDate} | CCV: ***", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+                                            } else {
+                                                Text("Celular: ***${card.lastDigits}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                            }
                                         }
                                         if (card.isDefault) {
                                             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(6.dp)) {
@@ -276,8 +281,8 @@ fun ProfileScreen(
                                 } else {
                                     Text("Mis Viajes (${tickets.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        items(tickets) { ticket ->
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        tickets.forEach { ticket ->
                                             TicketHistoryCard(ticket = ticket, onClick = { selectedTicket = ticket })
                                         }
                                     }
