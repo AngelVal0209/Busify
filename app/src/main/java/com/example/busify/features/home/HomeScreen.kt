@@ -2,11 +2,14 @@ package com.example.busify.features.home
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,23 +25,29 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.busify.R
 import com.example.busify.core.components.EmptyState
 import com.example.busify.core.components.ErrorState
 import com.example.busify.core.components.ShimmerBusCard
+import com.example.busify.core.navigation.Screen
 import com.example.busify.core.util.Resource
 import com.example.busify.domain.model.Route
 import com.example.busify.features.auth.AuthViewModel
 import com.example.busify.features.buses.BusesViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    navController: NavController,
     authViewModel: AuthViewModel,
     busesViewModel: BusesViewModel = viewModel()
 ) {
@@ -155,6 +164,128 @@ fun HomeScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+        //promos
+        val banners = listOf(
+            R.drawable.promos,
+            R.drawable.promobus
+        )
+
+        val pagerState = rememberPagerState(
+            pageCount = { banners.size }
+        )
+
+        LaunchedEffect(Unit) {
+
+            while (true) {
+
+                kotlinx.coroutines.delay(3000)
+
+                val nextPage =
+                    (pagerState.currentPage + 1) % banners.size
+
+                pagerState.animateScrollToPage(nextPage)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+        ) { page ->
+
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                shape = MaterialTheme.shapes.large
+            ) {
+
+                Box {
+
+                    Image(
+                        painter = painterResource(id = banners[page]),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+
+                        Text(
+                            text = "Descuento en pasajes",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Obtén acceso a descuentos exclusivos",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        //BP
+                        Button(
+                            onClick = {
+                                navController.navigate(Screen.Promos.route)
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            )
+                        ) {
+
+                            Text("Ver promociones")
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        val logos = listOf(
+            R.drawable.allinbus,
+            R.drawable.megabus,
+            R.drawable.linea,
+            R.drawable.palomino,
+            R.drawable.perubus,
+            R.drawable.transporteschiclayo,
+        )
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            items(logos) { logo ->
+
+                Card(
+                    modifier = Modifier
+                        .width(150.dp)
+                        .height(90.dp)
+                ) {
+
+                    Image(
+                        painter = painterResource(id = logo),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(20.dp),
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
         }
