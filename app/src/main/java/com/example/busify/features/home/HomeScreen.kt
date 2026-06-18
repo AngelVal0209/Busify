@@ -200,8 +200,10 @@ fun HomeScreen(
         ) { page ->
 
             Card(
-                modifier = Modifier.fillMaxSize(),
-                shape = MaterialTheme.shapes.large
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 28.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
 
                 Box {
@@ -257,6 +259,15 @@ fun HomeScreen(
         }
         Spacer(modifier = Modifier.height(24.dp))
 
+        Text(
+            text = "Nuestros Aliados",
+            style = MaterialTheme.typography.titleLarge,
+            color = Color.Black,
+            modifier = Modifier.padding(horizontal = 28.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         val logos = listOf(
             R.drawable.allinbus,
             R.drawable.megabus,
@@ -267,15 +278,18 @@ fun HomeScreen(
         )
 
         LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 28.dp)
         ) {
 
             items(logos) { logo ->
 
                 Card(
                     modifier = Modifier
-                        .width(150.dp)
-                        .height(90.dp)
+                        .width(120.dp)
+                        .height(70.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
 
                     Image(
@@ -283,7 +297,7 @@ fun HomeScreen(
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(20.dp),
+                            .padding(12.dp),
                         contentScale = ContentScale.Fit
                     )
                 }
