@@ -20,6 +20,8 @@ sealed class Screen(val route: String) {
     object Viajes : Screen("viajes")
     object Driver : Screen("driver")
 
+    object Promos : Screen("promos")
+
     object Seats : Screen("seats/{routeId}/{company}/{origin}/{destination}/{price}/{departureTime}")
     object Payment : Screen("payment/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{departureTime}")
     object Ticket : Screen("ticket/{routeId}/{company}/{origin}/{destination}/{seats}/{price}/{paymentMethod}/{departureTime}")

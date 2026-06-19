@@ -41,6 +41,7 @@ import com.example.busify.features.viajes.SeatSelectionScreen
 import com.example.busify.features.viajes.PaymentScreen
 import com.example.busify.features.viajes.TicketScreen
 import com.example.busify.features.onboarding.OnboardingScreen
+import com.example.busify.features.promos.PromosScreen
 
 @Composable
 fun BusifyNavigation(
@@ -168,7 +169,8 @@ fun BusifyNavigation(
                 }
                 composable(Screen.Home.route) {
                     NetworkBanner()
-                    HomeScreen(authViewModel = viewModel)
+                    HomeScreen(authViewModel = viewModel,
+                    navController = navController)
                 }
                 composable(Screen.Buses.route) {
                     NetworkBanner()
@@ -192,6 +194,10 @@ fun BusifyNavigation(
                 composable(Screen.Driver.route) {
                     NetworkBanner()
                     DriverScreen()
+                }
+                //Promos
+                composable(Screen.Promos.route) {
+                    PromosScreen(navController = navController)
                 }
                 composable(route = Screen.Seats.route) {
                     SeatSelectionScreen(
